@@ -1,0 +1,2406 @@
+/* =========================================================
+   MMIT World — ธีม Nextopia: เมืองแห่งอนาคต กระจก นีออน pixel
+   (ชื่อตัวแปรเดิมคงไว้: wood = แผงสีคราม, parch = แผงกระจกขาว, gold = นีออนฟ้า)
+   ========================================================= */
+:root {
+  --ink: #141a3a;
+  --ink-soft: #4b5578;
+  --grass: #0b1030;
+  --grass2: #10163d;
+  --grass-d: #46e6ff;
+  --wood: #3a3196;
+  --wood-l: #5a4fd0;
+  --wood-d: #231c66;
+  --parch: #f4f8ff;
+  --parch2: #e3ecfb;
+  --parch-d: #b9c7e6;
+  --gold: #46e6ff;
+  --gold-d: #1fb5d6;
+  --neon2: #ff4fd8;
+  --sky: #8fd3ff;
+  --red: #ff4f6a;
+  --ok: #43a047;
+  --persona: #7c4dff;
+  --font: "Kanit", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --pixel: "Silkscreen", "Kanit", monospace;
+  /* ขอบแบบ pixel: เส้นเข้ม + ไฮไลต์ด้านใน + เงาตกลงล่าง */
+  --frame: 0 0 0 3px var(--ink), 0 0 0 5px #46e6ff66, inset 0 3px 0 #ffffff, inset 0 -4px 0 #141a3a14, 0 8px 22px 2px #00000066;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font);
+  color: #eaf6ff;
+  background-color: #0b1030;
+  /* ท้องฟ้ายามค่ำม่วงชมพู + กริดนีออนจาง ๆ */
+  background-image:
+    radial-gradient(900px 520px at 50% -8%, #4a2fa8 0, #2a1e6e 40%, transparent 72%),
+    radial-gradient(600px 380px at 100% 110%, #ff4fd833 0, transparent 70%),
+    linear-gradient(#46e6ff12 1px, transparent 1px),
+    linear-gradient(90deg, #46e6ff12 1px, transparent 1px);
+  background-size: auto, auto, 32px 32px, 32px 32px;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 100dvh;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+img.pixel,
+canvas.pixel {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+a {
+  color: #2a7fe0;
+}
+
+/* ---------- โครงหน้ามือถือ ---------- */
+.play {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding: 14px 16px 120px;
+}
+
+/* ป้ายไม้ชื่อเกม */
+.logo {
+  position: relative;
+  display: block;
+  width: fit-content;
+  margin: 18px auto 6px;
+  padding: 12px 22px 10px;
+  background: linear-gradient(160deg, #2c2a86, #141a3a 70%);
+  box-shadow:
+    0 0 0 2px var(--gold),
+    0 0 0 5px #0a0f26,
+    0 0 26px 4px #46e6ff55;
+  font-family: var(--pixel);
+  font-weight: 700;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: 1px;
+  text-align: center;
+  color: #ffffff;
+  text-shadow:
+    0 0 8px var(--gold),
+    3px 3px 0 var(--neon2);
+}
+
+.logo small {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #9ff8ff;
+  text-shadow: none;
+}
+
+/* แผงที่อยู่บนพื้นสว่าง ใช้ตัวอักษรสีเข้ม */
+.card,
+.qcard,
+.hero,
+.status,
+.loading p {
+  color: var(--ink);
+}
+
+/* แผงกระจกขาว */
+.card {
+  position: relative;
+  background: var(--parch);
+  box-shadow: var(--frame);
+  padding: 18px 16px;
+  margin: 22px 3px;
+}
+
+.card h2 {
+  margin: 0 0 12px;
+  font-size: 19px;
+  line-height: 1.35;
+}
+
+/* หัวข้อเป็นป้ายไม้ติดบนกระดาษ */
+.card > h2.tab {
+  display: inline-block;
+  margin: -32px 0 12px -4px;
+  padding: 5px 14px 4px;
+  font-size: 16px;
+  color: #ffffff;
+  background: linear-gradient(90deg, #5a4fd0, #b04fe0 60%, var(--neon2));
+  box-shadow: 0 0 0 3px var(--ink), inset 0 2px 0 #ffffff55, 0 0 14px #ff4fd866;
+  text-shadow: 1px 1px 0 #00000055;
+}
+
+.card.tabbed {
+  margin-top: 36px;
+}
+
+.card h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.card p {
+  margin: 0 0 10px;
+  line-height: 1.6;
+}
+
+.muted {
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.note {
+  background: #46e6ff14;
+  box-shadow: inset 0 0 0 1px #46e6ff66;
+  color: #fff;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+/* ปุ่ม */
+.btn {
+  display: block;
+  width: 100%;
+  border: none;
+  padding: 14px 16px 16px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--gold);
+  box-shadow: 0 0 0 3px var(--ink), inset 0 3px 0 #d9fbff, inset 0 -5px 0 var(--gold-d), 0 6px 0 3px #00000066, 0 0 22px #46e6ff66;
+  transition: transform 0.06s;
+  margin: 6px 0;
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 3px var(--ink), inset 0 3px 0 #d9fbff, inset 0 -3px 0 var(--gold-d), 0 2px 0 3px #00000066;
+}
+
+.btn:disabled {
+  filter: grayscale(0.7);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn.secondary {
+  background: var(--parch);
+  box-shadow: 0 0 0 3px var(--ink), inset 0 3px 0 #ffffff, inset 0 -5px 0 var(--parch-d), 0 6px 0 3px #00000040;
+}
+
+.btn.ghost {
+  background: #141a3a;
+  color: #ffffff;
+  font-size: 16px;
+  box-shadow: 0 0 0 2px var(--gold), 0 0 0 5px #0a0f26, 0 0 16px #46e6ff44;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+}
+
+.row > * {
+  flex: 1;
+}
+
+.label {
+  display: block;
+  font-weight: 700;
+  font-size: 15px;
+  margin: 16px 0 8px;
+}
+
+.input {
+  width: 100%;
+  font: inherit;
+  font-size: 20px;
+  padding: 10px 14px;
+  border: none;
+  background: #fff;
+  color: var(--ink);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ink), inset 0 3px 0 #00000014;
+}
+
+.input:focus {
+  box-shadow: 0 0 0 3px var(--ink), 0 0 0 6px var(--gold);
+}
+
+.error {
+  color: var(--red);
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 8px;
+  min-height: 1.2em;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 3px;
+}
+
+.chip {
+  border: none;
+  background: #fff;
+  padding: 7px 16px;
+  font-size: 15px;
+  color: var(--ink);
+  box-shadow: 0 0 0 3px var(--ink), inset 0 -3px 0 #00000018;
+}
+
+.chip[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--gold);
+}
+
+.swatch {
+  width: 38px;
+  height: 38px;
+  border: none;
+  padding: 0;
+  box-shadow: 0 0 0 3px var(--ink), inset 0 4px 0 #ffffff44, inset 0 -4px 0 #00000033;
+}
+
+.swatch[aria-pressed="true"] {
+  box-shadow: 0 0 0 3px var(--ink), 0 0 0 7px var(--gold), inset 0 4px 0 #ffffff44, inset 0 -4px 0 #00000033;
+}
+
+/* ตัวเลือกทรงผมเป็นรูปหัว */
+.hairs {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  padding: 3px;
+}
+
+.hair-opt {
+  border: none;
+  background: #fff;
+  padding: 6px 0 4px;
+  box-shadow: 0 0 0 3px var(--ink), inset 0 -3px 0 #00000018;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.hair-opt .head {
+  height: 44px;
+  overflow: hidden;
+}
+
+.hair-opt[aria-pressed="true"] {
+  background: #d9fbff;
+  box-shadow: 0 0 0 3px var(--ink), 0 0 0 6px var(--gold);
+}
+
+/* ฉากท้องฟ้า + หญ้า ที่ตัวละครยืน */
+.scene {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 2px;
+  height: 220px;
+  padding-bottom: 16px;
+  overflow: hidden;
+  /* ฟ้ายามพลบแบบ synthwave + พระอาทิตย์ลายแถบ */
+  background:
+    radial-gradient(circle at 50% 62%, #ffe36b 0, #ff8a5c 34px, #ff4fd8 62px, transparent 64px),
+    linear-gradient(180deg, #1b1550 0, #4a2fa8 34%, #c04fd8 54%, #ff7ab8 62%, #0e1230 62%);
+  box-shadow: 0 0 0 3px var(--ink), 0 0 0 5px #46e6ff66;
+}
+
+/* เส้นขอบฟ้าเมืองอนาคต (ภาพ SVG ฝังในไฟล์) */
+.scene::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 38%;
+  height: 62px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 62' shape-rendering='crispEdges'%3E%3Cg fill='%23231a5e'%3E%3Crect x='0' y='34' width='18' height='28'/%3E%3Crect x='20' y='18' width='14' height='44'/%3E%3Crect x='26' y='8' width='2' height='10'/%3E%3Crect x='36' y='28' width='22' height='34'/%3E%3Crect x='60' y='12' width='12' height='50'/%3E%3Crect x='74' y='38' width='20' height='24'/%3E%3Crect x='96' y='22' width='16' height='40'/%3E%3Crect x='114' y='4' width='10' height='58'/%3E%3Crect x='118' y='0' width='2' height='4'/%3E%3Crect x='126' y='30' width='18' height='32'/%3E%3Crect x='146' y='16' width='14' height='46'/%3E%3Crect x='162' y='36' width='24' height='26'/%3E%3Crect x='188' y='20' width='12' height='42'/%3E%3Crect x='202' y='30' width='18' height='32'/%3E%3Crect x='222' y='14' width='18' height='48'/%3E%3C/g%3E%3Cg fill='%239ff8ff'%3E%3Crect x='23' y='24' width='2' height='2'/%3E%3Crect x='29' y='32' width='2' height='2'/%3E%3Crect x='63' y='18' width='2' height='2'/%3E%3Crect x='67' y='30' width='2' height='2'/%3E%3Crect x='117' y='12' width='2' height='2'/%3E%3Crect x='117' y='26' width='2' height='2'/%3E%3Crect x='149' y='24' width='2' height='2'/%3E%3Crect x='191' y='28' width='2' height='2'/%3E%3Crect x='226' y='22' width='2' height='2'/%3E%3C/g%3E%3Cg fill='%23ff9ce6'%3E%3Crect x='40' y='34' width='2' height='2'/%3E%3Crect x='100' y='30' width='2' height='2'/%3E%3Crect x='131' y='38' width='2' height='2'/%3E%3Crect x='167' y='42' width='2' height='2'/%3E%3Crect x='208' y='36' width='2' height='2'/%3E%3C/g%3E%3C/svg%3E")
+    center bottom / auto 100% repeat-x;
+  image-rendering: pixelated;
+}
+
+/* พื้นกริดนีออน */
+.scene::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 38%;
+  border-top: 3px solid #46e6ff;
+  box-shadow: 0 -2px 14px #46e6ffaa;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 13px, #46e6ff55 13px 15px),
+    repeating-linear-gradient(90deg, transparent 0 22px, #46e6ff44 22px 24px),
+    linear-gradient(#1a1f4d, #0e1230);
+}
+
+.scene > * {
+  position: relative;
+  z-index: 1;
+}
+
+.dice {
+  position: absolute !important;
+  top: 10px;
+  right: 10px;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 5px 10px 7px !important;
+  font-size: 14px !important;
+  z-index: 2 !important;
+}
+
+/* ---------- สร้างตัวละครแบบเกมแต่งตัว ---------- */
+/* ตัวละครติดขอบบนจอ เลื่อนไปเลือกตัวเลือกก็ยังเห็นผลทันที */
+.dress-stage {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  margin: 10px 3px 0;
+  padding-top: 6px;
+  background: linear-gradient(#0b1030 70%, transparent);
+}
+
+.dress-scene {
+  height: 190px;
+  padding-bottom: 26px;
+}
+
+/* ปุ่มเสียงลอยอยู่มุมขวาบนของจอ จึงย้ายปุ่มสุ่มไปซ้าย */
+.dress-scene .dice {
+  right: auto;
+  left: 10px;
+}
+
+.dress-name {
+  position: absolute !important;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  max-width: 80%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  background: #141a3acc;
+  box-shadow: 0 0 0 2px #46e6ff;
+  z-index: 2 !important;
+}
+
+.dress-panel {
+  padding-top: 12px;
+}
+
+.dress-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.dress-tabs button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 7px 0 6px;
+  border: none;
+  background: #fff;
+  color: var(--ink);
+  font: 700 13px var(--font);
+  box-shadow: 0 0 0 3px var(--ink), inset 0 -3px 0 #00000018;
+}
+
+.dress-tabs button span {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.dress-tabs button[aria-selected="true"] {
+  background: linear-gradient(90deg, #5a4fd0, #b04fe0 60%, var(--neon2));
+  color: #fff;
+  box-shadow: 0 0 0 3px var(--ink), 0 0 12px #ff4fd866;
+}
+
+.dress-body {
+  min-height: 150px;
+}
+
+.dress-body .label:first-child {
+  margin-top: 4px;
+}
+
+.card .dress-note {
+  margin: 14px 0 0;
+  color: var(--ink);
+  background: #46e6ff1f;
+}
+
+/* ---------- แบบทดสอบ ---------- */
+.qmeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 2px 2px 0 var(--ink);
+  padding: 3px;
+}
+
+.qmeta button {
+  background: var(--wood);
+  border: none;
+  padding: 4px 12px 6px;
+  color: #fff4dc;
+  text-shadow: 2px 2px 0 var(--ink);
+  box-shadow: 0 0 0 3px var(--ink), inset 0 2px 0 var(--wood-l), inset 0 -3px 0 var(--wood-d);
+}
+
+/* ทางเดินความคืบหน้า: ตัวละครเดินไปตามทางดิน */
+.trail {
+  position: relative;
+  height: 70px;
+  margin: 8px 14px 4px;
+}
+
+.trail .path {
+  position: absolute;
+  left: -8px;
+  right: -8px;
+  bottom: 6px;
+  height: 14px;
+  background: #2b3150;
+  box-shadow: 0 0 0 3px var(--ink), 0 0 0 5px #46e6ff55, inset 0 -3px 0 #1d2240;
+}
+
+.trail .done {
+  position: absolute;
+  left: -8px;
+  bottom: 6px;
+  height: 14px;
+  background: repeating-linear-gradient(90deg, var(--gold) 0 10px, #1fb5d6 10px 14px);
+  transition: width 0.35s;
+}
+
+.trail .walker {
+  position: absolute;
+  bottom: 4px;
+  transform: translateX(-50%);
+  transition: left 0.35s;
+}
+
+.trail .flag {
+  position: absolute;
+  right: -14px;
+  bottom: 16px;
+  font-size: 26px;
+}
+
+.qcard {
+  background: var(--parch);
+  box-shadow: var(--frame);
+  padding: 16px 16px 14px;
+  margin: 14px 3px 22px;
+  text-align: center;
+}
+
+.qemoji {
+  font-size: 44px;
+  line-height: 1;
+}
+
+.qtext {
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 8px 0 0;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: calc(100% - 6px);
+  margin: 0 3px 16px;
+  text-align: left;
+  border: none;
+  background: #fff;
+  color: var(--ink);
+  padding: 12px 14px 14px;
+  font-size: 16px;
+  line-height: 1.45;
+  box-shadow: 0 0 0 3px var(--ink), inset 0 -4px 0 #00000014, 0 5px 0 3px #00000035;
+  transition: transform 0.08s, background 0.15s;
+}
+
+.option .key {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  font-weight: 700;
+  font-size: 16px;
+  background: var(--parch2);
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.option[aria-pressed="true"] {
+  background: #d9fbff;
+}
+
+.option[aria-pressed="true"] .key {
+  background: var(--gold);
+}
+
+.option:active {
+  transform: translateY(3px);
+}
+
+.fade-in {
+  animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in {
+    animation: none;
+  }
+}
+
+/* ---------- หน้าผลลัพธ์ ---------- */
+.hero {
+  position: relative;
+  margin: 18px 3px 28px;
+  background: var(--parch);
+  box-shadow: var(--frame);
+  text-align: center;
+  overflow: hidden;
+}
+
+.hero .banner {
+  background: var(--persona);
+  color: #fff;
+  padding: 14px 12px 12px;
+  box-shadow: inset 0 -4px 0 #00000030, inset 0 3px 0 #ffffff40;
+  border-bottom: 3px solid var(--ink);
+}
+
+.hero .kicker {
+  font-size: 14px;
+  text-shadow: 1px 1px 0 #00000066;
+}
+
+.hero .pname {
+  font-family: var(--pixel);
+  font-size: clamp(20px, 7vw, 30px);
+  font-weight: 700;
+  margin: 4px 0 2px;
+  white-space: nowrap;
+  text-shadow: 3px 3px 0 var(--ink);
+}
+
+.hero .career {
+  font-size: 17px;
+  font-weight: 700;
+  text-shadow: 2px 2px 0 #00000066;
+}
+
+.hero .careerTh {
+  font-size: 13px;
+  text-shadow: 1px 1px 0 #00000066;
+}
+
+.hero .scene {
+  box-shadow: none;
+  height: 270px;
+  border-bottom: 3px solid var(--ink);
+}
+
+.hero .meta {
+  padding: 12px 14px 16px;
+  font-size: 14px;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.tag {
+  display: inline-block;
+  background: #fff;
+  padding: 4px 10px;
+  font-size: 13px;
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.tag.gold {
+  background: var(--gold);
+  font-weight: 700;
+}
+
+.reason {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 10px 0;
+  line-height: 1.5;
+}
+
+.reason .pill {
+  flex: none;
+  background: var(--ink);
+  color: var(--gold);
+  font-family: var(--pixel);
+  font-size: 11px;
+  padding: 4px 7px;
+  margin-top: 2px;
+}
+
+/* แถบค่าพลังแบบเกม RPG */
+.stats {
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--ink);
+  padding: 6px 10px;
+  margin-top: 14px;
+}
+
+.stat {
+  display: grid;
+  grid-template-columns: 70px 1fr 70px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  margin: 8px 0;
+}
+
+.stat .track {
+  position: relative;
+  height: 14px;
+  background: var(--parch2);
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.stat .mid {
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--ink);
+}
+
+.stat .fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--persona);
+  box-shadow: inset 0 3px 0 #ffffff55;
+}
+
+.stat span:last-child {
+  text-align: right;
+}
+
+.timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.timeline li {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 2px dashed var(--parch-d);
+  line-height: 1.5;
+}
+
+.timeline li:last-child {
+  border-bottom: none;
+}
+
+.timeline time {
+  align-self: start;
+  font-family: var(--pixel);
+  font-size: 12px;
+  text-align: center;
+  background: var(--ink);
+  color: var(--gold);
+  padding: 3px 0;
+}
+
+.ladder {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 10px;
+}
+
+.ladder li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--ink);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.ladder li .lv {
+  flex: none;
+  font-family: var(--pixel);
+  font-size: 10px;
+  background: var(--parch2);
+  box-shadow: 0 0 0 2px var(--ink);
+  padding: 3px 0;
+  width: 72px;
+  text-align: center;
+}
+
+.ladder li.you {
+  background: var(--persona);
+  color: #fff;
+  font-weight: 700;
+  text-shadow: 1px 1px 0 #00000066;
+}
+
+.ladder li.you .lv {
+  background: var(--gold);
+  color: var(--ink);
+  text-shadow: none;
+}
+
+.courses {
+  display: grid;
+  gap: 8px;
+}
+
+.course {
+  display: flex;
+  gap: 10px;
+  font-size: 14px;
+  align-items: center;
+  background: #fff;
+  padding: 6px 8px;
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.course code {
+  font-family: var(--pixel);
+  font-size: 11px;
+  background: var(--ink);
+  color: var(--gold);
+  padding: 3px 6px;
+  white-space: nowrap;
+}
+
+.wil {
+  background: #d9fbff;
+  box-shadow: 0 0 0 2px var(--ink);
+  padding: 12px;
+  margin-top: 14px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.wil b {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.alt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.alt .rank {
+  font-family: var(--pixel);
+  font-size: 16px;
+  width: 30px;
+  text-align: center;
+}
+
+.alt .meta {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.alt .meta b {
+  display: block;
+  font-size: 15px;
+}
+
+.alt .pct {
+  font-family: var(--pixel);
+  font-size: 13px;
+  background: var(--gold);
+  box-shadow: 0 0 0 2px var(--ink);
+  padding: 3px 6px;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.45;
+  background: var(--parch);
+  box-shadow: 0 0 0 3px var(--ink), 0 5px 0 3px #00000035;
+  padding: 10px 12px;
+  margin: 8px 3px 4px;
+}
+
+.status .led {
+  width: 12px;
+  height: 12px;
+  background: var(--gold);
+  box-shadow: 0 0 0 2px var(--ink);
+  flex: none;
+  animation: blink 1s steps(2) infinite;
+}
+
+.status.sent .led {
+  background: #5cc35a;
+  animation: none;
+}
+
+.status.failed .led {
+  background: var(--red);
+  animation: none;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.sticky {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 14px 19px calc(14px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, transparent, #0b1030cc);
+  z-index: 10;
+}
+
+.sticky .inner {
+  max-width: 442px;
+  margin: 0 auto;
+}
+
+/* ผังโครงสร้างองค์กร (กว้างกว่าจอ เลื่อนซ้าย-ขวาได้) */
+.oc-scroll {
+  overflow-x: auto;
+  margin: 0 -16px;
+  padding: 0 10px 6px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.oc {
+  --line: #141a3a;
+  width: 900px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0 8px;
+  color: var(--ink);
+}
+
+.oc-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.oc-box {
+  display: block;
+  width: 100%;
+  border: none;
+  padding: 6px 6px 5px;
+  font: 600 11px/1.35 var(--font);
+  color: var(--ink);
+  text-align: center;
+  background: #fff;
+  box-shadow: 0 0 0 1.5px var(--line);
+}
+
+button.oc-box {
+  cursor: pointer;
+}
+
+.oc-box small {
+  display: block;
+  font-size: 9.5px;
+  font-weight: 700;
+  opacity: 0.65;
+}
+
+.oc-board {
+  width: 190px;
+  color: #fff;
+  background: linear-gradient(#3a63c9, #1f3c8f);
+}
+
+.oc-board small {
+  opacity: 0.85;
+}
+
+.oc-v {
+  width: 2px;
+  height: 14px;
+  background: var(--line);
+}
+
+.oc-ceo-row {
+  display: grid;
+  grid-template-columns: 1fr 200px 1fr;
+  width: 100%;
+}
+
+.oc-mid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* เส้นจาก CEO ลงไปถึงสายงาน แม้แถวนี้จะสูงกว่ากล่อง CEO */
+.oc-mid::after {
+  content: "";
+  flex: 1;
+  width: 2px;
+  background: var(--line);
+}
+
+.oc-mid .oc-head {
+  font-size: 12.5px;
+  color: #fff;
+  background: linear-gradient(#26305f, #141a3a);
+}
+
+.oc-side {
+  position: relative;
+  padding-top: 8px;
+}
+
+.oc-side .oc-staff {
+  width: 170px;
+}
+
+.oc-side.left .oc-staff {
+  margin: 0 34px 0 auto;
+}
+
+.oc-side.right .oc-staff,
+.oc-side.right .oc-under {
+  margin-left: 34px;
+  width: 170px;
+}
+
+/* เส้นแนวนอนจาก CEO ไปหน่วยงานขึ้นตรง */
+.oc-side::before {
+  content: "";
+  position: absolute;
+  top: 22px;
+  width: 34px;
+  height: 0;
+  border-top: 2px dashed var(--line);
+}
+
+.oc-side.left::before {
+  right: 0;
+}
+
+.oc-side.right::before {
+  left: 0;
+}
+
+.oc-staff {
+  background: #eef1f8;
+}
+
+/* แถวสายงาน + เส้นบัสด้านบน */
+.oc-divs {
+  display: flex;
+  width: 100%;
+}
+
+.oc-col {
+  position: relative;
+  flex: 1;
+  padding: 14px 5px 0;
+}
+
+.oc-col::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--line);
+}
+
+.oc-col:first-child::before {
+  left: 50%;
+}
+
+.oc-col:last-child::before {
+  right: 50%;
+}
+
+.oc-col::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 14px;
+  background: var(--line);
+}
+
+.oc-head {
+  min-height: 58px;
+  background: linear-gradient(#e6edff, #c9d7ff);
+}
+
+.oc-rank {
+  display: block;
+  font-size: 9.5px;
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+.oc-head.linked {
+  background: #c8f6ff;
+  box-shadow: 0 0 0 2px #0aa5c2;
+}
+
+.oc-tag {
+  display: inline-block;
+  margin-top: 3px;
+  padding: 0 5px;
+  font-style: normal;
+  font-size: 9px;
+  color: #fff;
+  background: #0aa5c2;
+}
+
+/* ฝ่ายย่อยเรียงลงมา มีเส้นแกนด้านซ้ายแบบผังบริษัท */
+.oc-units {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 14px;
+}
+
+.oc-units li {
+  position: relative;
+  padding-top: 8px;
+}
+
+.oc-units li::before {
+  content: "";
+  position: absolute;
+  left: -9px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--line);
+}
+
+.oc-units li:last-child::before {
+  bottom: auto;
+  height: 23px;
+}
+
+.oc-units li::after {
+  content: "";
+  position: absolute;
+  left: -9px;
+  top: 21px;
+  width: 9px;
+  height: 2px;
+  background: var(--line);
+}
+
+.oc-unit {
+  font-weight: 500;
+}
+
+.oc-box.mine {
+  font-weight: 700;
+  box-shadow: 0 0 0 2.5px var(--neon2);
+}
+
+.oc-under {
+  margin: 0 0 0 10px;
+  padding: 6px 0 0 8px;
+  border-left: 2px solid var(--neon2);
+}
+
+.oc-you {
+  display: block;
+  width: 100%;
+  border: none;
+  padding: 7px 6px;
+  font: 700 11.5px/1.3 var(--font);
+  color: #fff;
+  text-align: center;
+  text-shadow: 1px 1px 0 #00000055;
+  cursor: pointer;
+  box-shadow: 0 0 0 2px var(--ink), 0 0 14px #ff4fd8aa;
+  animation: ocPulse 1.6s ease-in-out infinite;
+}
+
+.oc-you small {
+  display: block;
+  font-size: 10px;
+  opacity: 0.95;
+}
+
+@keyframes ocPulse {
+  50% {
+    box-shadow: 0 0 0 2px var(--ink), 0 0 22px #ff4fd8;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oc-you {
+    animation: none;
+  }
+}
+
+/* ผังย่อบนหน้าผลลัพธ์ */
+.ocm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0 2px;
+  color: var(--ink);
+}
+
+.ocm .oc-box,
+.ocm .oc-mid,
+.ocm .oc-you {
+  width: 250px;
+}
+
+.ocm .oc-head {
+  min-height: 0;
+}
+
+.oc-v.accent {
+  width: 3px;
+  background: var(--neon2);
+}
+
+.ocm-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ocm-links .chip {
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+.ocm-open {
+  margin-top: 12px;
+}
+
+/* ผังเต็มแบบเต็มจอ */
+.oc-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(6, 9, 28, 0.82);
+  backdrop-filter: blur(3px);
+}
+
+.oc-sheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 980px;
+  color: var(--ink);
+  background: var(--parch);
+  box-shadow: 0 0 0 3px var(--ink), 0 0 0 5px #46e6ff88;
+  overflow: hidden;
+}
+
+.oc-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px 8px 14px;
+  color: #fff;
+  background: linear-gradient(90deg, #5a4fd0, #b04fe0 60%, var(--neon2));
+}
+
+.oc-close {
+  width: 34px;
+  height: 34px;
+  border: none;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--ink);
+  cursor: pointer;
+}
+
+.oc-scroll.full {
+  flex: 1;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+}
+
+.oc-sheet-foot {
+  padding: 0 12px 10px;
+  border-top: 2px solid #141a3a22;
+}
+
+.oc-sheet-foot .detail {
+  min-height: 0;
+  max-height: 22vh;
+  overflow-y: auto;
+}
+
+.oc-hint {
+  margin: 4px 0 0;
+  text-align: center;
+  font-size: 12px;
+}
+
+.org .detail,
+.oc-modal .detail {
+  padding: 10px 12px;
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.55;
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--ink);
+  min-height: 80px;
+}
+
+.org .detail b,
+.oc-modal .detail b {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.center {
+  text-align: center;
+}
+
+.loading {
+  text-align: center;
+  padding-top: 22vh;
+}
+
+.loading .bar {
+  width: 240px;
+  height: 22px;
+  margin: 22px auto;
+  background: #fff;
+  box-shadow: 0 0 0 3px var(--ink);
+}
+
+.loading .bar div {
+  height: 100%;
+  width: 0;
+  background: repeating-linear-gradient(90deg, var(--gold) 0 12px, #1fb5d6 12px 16px);
+  animation: fill 1.4s steps(10) forwards;
+}
+
+.loading p {
+  display: inline-block;
+  background: var(--parch);
+  padding: 8px 14px;
+  box-shadow: 0 0 0 3px var(--ink);
+}
+
+@keyframes fill {
+  to {
+    width: 100%;
+  }
+}
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  background: #000b;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  gap: 14px;
+}
+
+.sheet img {
+  max-height: 66dvh;
+  max-width: 100%;
+  box-shadow: 0 0 0 3px #fff;
+}
+
+.sheet .inner {
+  width: 100%;
+  max-width: 420px;
+  color: #fff;
+}
+
+/* ---------- หน้ารวมตัวละคร ---------- */
+.sheet-page {
+  padding: 24px;
+  min-height: 100dvh;
+}
+
+.sheet-page .logo {
+  font-size: 22px;
+  margin-left: 0;
+}
+
+.sheet-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin: 18px 0 30px;
+}
+
+.sheet-grid figure {
+  margin: 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 2px 2px 0 var(--ink);
+}
+
+/* =========================================================
+   จอใหญ่
+   ========================================================= */
+.city-root {
+  position: fixed;
+  inset: 0;
+  background: #1b1420;
+  overflow: hidden;
+  cursor: none;
+}
+
+.city-stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center center;
+}
+
+.city-map {
+  position: absolute;
+  inset: 0;
+}
+
+.city-map canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  image-rendering: pixelated;
+}
+
+/* แผงมุมจอ (วางในมุมที่อยู่นอกเพชร iso ของเมือง) */
+.hud {
+  position: absolute;
+  z-index: 3;
+  background: var(--parch);
+  box-shadow: var(--frame), 0 8px 0 3px #0000003a;
+}
+
+.hud-tl {
+  left: 22px;
+  top: 20px;
+}
+.hud-tr {
+  right: 22px;
+  top: 20px;
+}
+.pop-panel {
+  width: 360px;
+  padding: 10px 12px 12px;
+}
+.hud.is-hidden {
+  display: none;
+}
+.hud-bl {
+  left: 22px;
+  bottom: 22px;
+}
+.hud-br {
+  right: 22px;
+  bottom: 22px;
+}
+
+.city-title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px 20px 14px;
+  background: linear-gradient(var(--wood-l) 0 5px, var(--wood) 5px calc(100% - 8px), var(--wood-d) calc(100% - 8px));
+  color: #fff4dc;
+  text-shadow: 2px 2px 0 var(--ink);
+}
+
+.city-title .logo-sm {
+  font-family: var(--pixel);
+  font-weight: 700;
+  font-size: 40px;
+  line-height: 1;
+  color: var(--gold);
+  text-shadow: 3px 3px 0 var(--ink);
+}
+
+.city-title .sub {
+  font-size: 19px;
+}
+
+.city-title .row {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.city-title .clock {
+  font-size: 17px;
+  background: var(--parch);
+  color: var(--ink);
+  text-shadow: none;
+  padding: 1px 10px;
+  white-space: nowrap;
+  box-shadow: 0 0 0 3px var(--ink);
+}
+
+.city-title .demo,
+.city-title .offline {
+  font-family: var(--pixel);
+  font-size: 15px;
+  padding: 2px 10px;
+  background: var(--red);
+  color: #fff;
+  box-shadow: 0 0 0 3px var(--ink);
+}
+
+.city-title .offline {
+  font-family: var(--font);
+}
+
+.pop {
+  text-align: center;
+  padding-bottom: 6px;
+  border-bottom: 3px dashed #00000025;
+}
+
+.pop-label {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.pop-num {
+  font-family: var(--pixel);
+  font-weight: 700;
+  font-size: 54px;
+  line-height: 1.05;
+  color: var(--gold);
+  text-shadow: 4px 4px 0 var(--ink), -2px -2px 0 var(--ink), 2px -2px 0 var(--ink), -2px 2px 0 var(--ink);
+}
+
+.pop-next {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.districts {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px 12px;
+}
+
+.districts li {
+  display: grid;
+  grid-template-columns: 20px 1fr 26px;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.districts .nm {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.districts .ic {
+  font-size: 16px;
+}
+
+.districts .bar {
+  display: block;
+  height: 5px;
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--ink);
+  margin: 3px 2px 2px;
+  overflow: hidden;
+}
+
+.districts .bar span {
+  display: block;
+  height: 100%;
+  transition: width 0.6s;
+}
+
+.districts .n {
+  font-family: var(--pixel);
+  font-size: 16px;
+  text-align: right;
+}
+
+.join {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px 10px 10px;
+}
+
+.join img {
+  width: 132px;
+  height: 132px;
+  image-rendering: pixelated;
+  box-shadow: 0 0 0 3px var(--ink);
+}
+
+.join b {
+  display: block;
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.join span {
+  display: block;
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.arrival-card {
+  width: 400px;
+  height: 172px;
+  padding: 10px 14px;
+  overflow: hidden;
+}
+
+.arrival-in {
+  animation: popIn 0.35s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+@keyframes popIn {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+
+.arrival-card .welcome {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff4dc;
+  background: var(--wood);
+  padding: 1px 10px 2px;
+  box-shadow: 0 0 0 3px var(--ink);
+  text-shadow: 2px 2px 0 var(--ink);
+  margin: 2px 0 6px 2px;
+}
+
+.arrival-card .one {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.arrival-card .who {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.1;
+  word-break: break-all;
+}
+
+.arrival-card .what {
+  font-family: var(--pixel);
+  font-size: 15px;
+  font-weight: 700;
+  text-shadow: 1px 1px 0 var(--ink);
+  margin-top: 2px;
+}
+
+.arrival-card .where {
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.arrival-card .crowd {
+  display: flex;
+  gap: 4px;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.arrival-card .mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  max-width: 50px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.arrival-card .more {
+  font-family: var(--pixel);
+  font-size: 18px;
+  align-self: center;
+}
+
+.arrival-card .idle {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.arrival-card .idle span {
+  font-size: 34px;
+}
+
+.arrival-card .idle small {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.milestone {
+  position: absolute;
+  left: 960px;
+  top: 100px;
+  transform: translateX(-50%);
+  font-size: 38px;
+  font-weight: 700;
+  background: var(--gold);
+  color: var(--ink);
+  box-shadow: 0 0 0 5px var(--ink), inset 0 4px 0 #d9fbff, inset 0 -6px 0 var(--gold-d), 0 8px 0 5px #00000055;
+  padding: 10px 30px 14px;
+  white-space: nowrap;
+  animation: pop 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+  z-index: 6;
+}
+
+/* ---- ธีม Nextopia บนจอใหญ่: แผงกระจกเข้ม ขอบนีออน ---- */
+.city-root {
+  --neon: #46e6ff;
+  --neon2: #ff4fd8;
+  --glass: rgba(14, 19, 48, 0.86);
+  background: #0a1030;
+}
+
+.city-root .hud {
+  background: linear-gradient(160deg, rgba(30, 40, 92, 0.9), var(--glass) 55%);
+  color: #eaf6ff;
+  box-shadow:
+    0 0 0 2px var(--neon),
+    0 0 0 5px #0a0f26,
+    0 0 22px 4px rgba(70, 230, 255, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+}
+
+.city-root .city-title {
+  text-shadow: none;
+}
+
+.city-root .city-title .logo-sm {
+  color: #ffffff;
+  text-shadow:
+    0 0 6px var(--neon),
+    3px 3px 0 var(--neon2);
+}
+
+.city-root .city-title .sub {
+  color: #bfefff;
+}
+
+.city-root .city-title .clock {
+  background: rgba(70, 230, 255, 0.14);
+  color: #eaf6ff;
+  box-shadow: 0 0 0 2px var(--neon);
+}
+
+.city-root .city-title .demo,
+.city-root .city-title .offline {
+  background: var(--neon2);
+  box-shadow: 0 0 0 2px #ffffff;
+}
+
+.city-root .pop {
+  border-bottom-color: rgba(70, 230, 255, 0.35);
+}
+
+.city-root .pop-label,
+.city-root .districts li {
+  color: #eaf6ff;
+}
+
+.city-root .pop-num {
+  color: #ffffff;
+  text-shadow:
+    0 0 10px var(--neon),
+    3px 3px 0 var(--neon2);
+}
+
+.city-root .pop-next {
+  color: #9fdcf0;
+}
+
+.city-root .districts .bar {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+}
+
+.city-root .districts .bar span {
+  box-shadow: 0 0 6px currentColor;
+}
+
+.city-root .districts .n {
+  color: var(--neon);
+}
+
+.city-root .join b {
+  color: #ffffff;
+}
+
+.city-root .join span {
+  color: #9fdcf0;
+}
+
+.city-root .join img {
+  background: #ffffff;
+  padding: 6px;
+  box-shadow: 0 0 0 2px var(--neon);
+}
+
+.city-root .arrival-card .welcome {
+  background: var(--neon2);
+  color: #ffffff;
+  box-shadow: 0 0 0 2px #ffffff;
+  text-shadow: none;
+}
+
+.city-root .arrival-card .who {
+  color: #ffffff;
+}
+
+.city-root .arrival-card .what {
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.35);
+}
+
+.city-root .arrival-card .where,
+.city-root .arrival-card .mini,
+.city-root .arrival-card .more {
+  color: #bfefff;
+}
+
+.city-root .arrival-card .idle {
+  color: #9fdcf0;
+}
+
+.city-root .milestone {
+  background: linear-gradient(90deg, var(--neon2), #7c4dff, var(--neon));
+  color: #ffffff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+  box-shadow:
+    0 0 0 3px #ffffff,
+    0 0 0 6px #0a0f26,
+    0 0 30px 6px rgba(255, 79, 216, 0.5);
+}
+
+.four {
+  display: flex;
+  gap: 4px;
+  background: #ffffff33;
+  padding: 6px 8px;
+  box-shadow: 0 0 0 3px var(--ink);
+}
+
+.four span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.four small {
+  font-size: 11px;
+}
+
+/* =========================================================
+   โลโก้ CAMT NEXTopia: ตัวอักษรโครเมียม ประกายดาว แสงไฟส้ม
+   ========================================================= */
+.nx-logo {
+  --nx: 44px;
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.1em 0.5em 0.35em;
+  font-family: "Orbitron", var(--font);
+  line-height: 1;
+  isolation: isolate;
+}
+
+.nx-camt,
+.nx-word {
+  background: linear-gradient(180deg, #ffffff 0%, #f3f6fb 32%, #aeb6c7 47%, #5f677d 53%, #d9dfe9 72%, #ffffff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 0.025em #3c4560;
+  filter: drop-shadow(0 0.05em 0 #10142e) drop-shadow(0 0.1em 0.14em #000000aa);
+}
+
+.nx-camt {
+  font-size: calc(var(--nx) * 0.6);
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  margin-bottom: 0.08em;
+}
+
+.nx-word {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  font-size: var(--nx);
+  font-weight: 900;
+  letter-spacing: 0.01em;
+}
+
+.nx-x {
+  font-size: 1.24em;
+  margin: 0 0.01em;
+}
+
+.nx-low {
+  font-size: 0.8em;
+  font-weight: 700;
+  margin-left: 0.04em;
+}
+
+.nx-star {
+  position: absolute;
+  right: -0.42em;
+  top: -0.32em;
+  font-size: 0.5em;
+  color: #ffffff;
+  -webkit-text-stroke: 0;
+  text-shadow:
+    0 0 6px #ffffff,
+    0 0 16px #9ff8ff;
+}
+
+.nx-tag {
+  margin-top: 0.42em;
+  font-size: calc(var(--nx) * 0.3);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #ffffff;
+  text-shadow: 0 0 8px #ffffff55;
+  white-space: nowrap;
+}
+
+/* แสงไฟส้มแนวนอนใต้ชื่อ + เส้นแสงแนวตั้งด้านซ้าย */
+.nx-flare {
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #ff8a2b 25%, #fff1d6 50%, #ff8a2b 75%, transparent);
+  box-shadow: 0 0 14px 3px #ff8a2b88;
+  z-index: -1;
+}
+
+.nx-streak {
+  position: absolute;
+  left: 0;
+  top: -10%;
+  bottom: -10%;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, #ff8a2b 40%, #fff1d6 55%, transparent);
+  box-shadow: 0 0 12px 2px #ff8a2b77;
+  z-index: -1;
+}
+
+.intro-brand {
+  display: flex;
+  justify-content: center;
+  margin: 14px 0 0;
+}
+
+.city-root .city-title {
+  align-items: center;
+  gap: 8px;
+  padding: 16px 22px 14px;
+}
+
+.city-root .city-title .game {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.city-root .city-title .logo-sm {
+  font-size: 22px;
+}
+
+.city-root .city-title .sub {
+  font-size: 15px;
+}
+
+/* ปุ่มเสียงบนจอใหญ่ (ให้เห็นเมาส์ตอนชี้ เพราะจอใหญ่ซ่อนเมาส์) */
+.city-root .sound-chip {
+  cursor: pointer;
+  border: none;
+  font: inherit;
+  font-size: 15px;
+  padding: 1px 10px;
+  color: #eaf6ff;
+  background: rgba(255, 79, 216, 0.18);
+  box-shadow: 0 0 0 2px var(--neon2);
+  text-shadow: none;
+}
+
+/* ปุ่มปิด/เปิดเสียงบนมือถือ */
+.sound-toggle {
+  position: fixed;
+  top: max(10px, env(safe-area-inset-top));
+  right: 10px;
+  z-index: 30;
+  width: 40px;
+  height: 40px;
+  border: none;
+  font-size: 18px;
+  background: #141a3acc;
+  color: #ffffff;
+  box-shadow: 0 0 0 2px var(--gold), 0 0 12px #46e6ff66;
+}
+.qmeta { padding-right: 50px; }
+
+/* ป้ายเตือนให้ staff กดเปิดเสียง (เบราว์เซอร์ไม่ให้เล่นเสียงเอง) */
+.city-root .sound-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 5;
+  padding: 10px 22px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
+  background: rgba(20, 26, 58, 0.9);
+  box-shadow: 0 0 0 2px var(--neon2), 0 0 24px rgba(255, 79, 216, 0.5);
+  animation: blink 1.4s steps(2) infinite;
+  pointer-events: none;
+}
+
+/* ---- ปุ่มซ่อน/แสดงแผง HUD ---- */
+.city-root .hud-hide {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(70, 230, 255, 0.14);
+  color: var(--neon);
+  font: 900 18px/26px var(--font);
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1.5px rgba(70, 230, 255, 0.55);
+}
+.city-root .hud-hide:hover {
+  background: rgba(70, 230, 255, 0.32);
+  color: #fff;
+}
+.city-root .hud-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--font);
+  color: #eaf6ff;
+}
+.city-root .hud-pill .logo-sm {
+  font-family: var(--pixel);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.city-root .hud-pill .clock {
+  font-size: 16px;
+}
+.city-root .hud-pill .pill-label {
+  font-size: 15px;
+  font-weight: 700;
+}
+.city-root .hud-pill .pill-num {
+  font-family: var(--pixel);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--neon);
+  text-shadow: 0 0 10px rgba(70, 230, 255, 0.7);
+}
+.city-root .hud-pill .caret {
+  color: var(--neon2);
+  font-size: 16px;
+}
+
+.oc-sheet .muted {
+  color: #4b5578;
+}
+
+/* ไอคอนพิกเซล (แทนอิโมจิ): ค่าเริ่มต้นสูงเท่าตัวอักษร */
+.pxi {
+  display: inline-block;
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.2em;
+  flex: none;
+}
+
+/* บนจอใหญ่แผงเป็นกระจกเข้ม: ขอบขาวบาง ๆ ให้เส้นขอบเข้มของไอคอนไม่จมหาย */
+.city-root .pxi,
+.sound-toggle .pxi {
+  filter: drop-shadow(0 0 0.6px #ffffff) drop-shadow(0 0 0.6px #ffffff);
+}
+
+/* =========================================================
+   CAMT Nextopia — ส่วนเพิ่ม (ใช้ภาษาภาพเดียวกับด้านบน)
+   ========================================================= */
+.qzone {
+  font-family: var(--pixel);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #b04fe0;
+  margin-bottom: 6px;
+}
+
+.major-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 14px;
+}
+.major-strip .tag {
+  font-family: var(--pixel);
+  font-size: 12px;
+  border-left: 6px solid var(--persona);
+}
+
+/* ผลลุ้นของรางวัล */
+.prize-card.win {
+  background: linear-gradient(180deg, #fff6d6, var(--parch) 60%);
+  box-shadow: var(--frame), 0 0 32px #ffd23f88;
+}
+.prize-card.win > h2.tab {
+  background: linear-gradient(90deg, #ff9a3c, #ffd23f);
+  color: var(--ink);
+  text-shadow: none;
+  box-shadow: 0 0 0 3px var(--ink), inset 0 2px 0 #ffffff88, 0 0 18px #ffd23f99;
+}
+.prize-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.prize-icon {
+  flex: none;
+  width: 88px;
+  height: 88px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  box-shadow: 0 0 0 3px var(--ink), inset 0 -5px 0 #ffd23f, 0 0 18px #ffd23f88;
+  animation: prize-pop 0.6s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+.prize-icon.lose {
+  box-shadow: 0 0 0 3px var(--ink), inset 0 -5px 0 var(--parch-d);
+}
+@keyframes prize-pop {
+  from {
+    transform: scale(0.3) rotate(-12deg);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.prize-name {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.claim {
+  margin-top: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 2px;
+  text-align: center;
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--ink);
+  outline: 2px dashed #ff9a3c;
+  outline-offset: -8px;
+}
+.claim span {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.claim b {
+  font-family: var(--pixel);
+  font-size: 26px;
+  letter-spacing: 2px;
+}
+.claim small {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+.claim em {
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 700;
+  color: #c8621c;
+}
+
+/* ตัวเลข CAMT */
+.facts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.facts div {
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--ink);
+  padding: 8px;
+  text-align: center;
+}
+.facts b {
+  display: block;
+  font-family: var(--pixel);
+  font-size: 22px;
+  color: #5a4fd0;
+}
+.facts span {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* ---------- Staff ---------- */
+.btn.small {
+  width: auto;
+  font-size: 15px;
+  padding: 8px 14px 10px;
+}
+.qmeta a {
+  color: #fff;
+}
+.staff .prize-table {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.staff .prize-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px;
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--ink);
+}
+.staff .prize-line b {
+  min-width: 120px;
+}
+.staff .prize-line label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.staff .prize-line input[type="number"] {
+  width: 70px;
+  font: inherit;
+  padding: 4px 6px;
+  border: 2px solid var(--ink);
+}
+.staff .chk {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 14px;
+  margin-top: 10px;
+}
+.staff .lookup {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 10px;
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--ink);
+}
+.staff .lookup.ok b {
+  color: var(--ok);
+}
+.staff .lookup.warn b {
+  color: #c8621c;
+}
+.staff .history {
+  max-height: 320px;
+  overflow: auto;
+  font-size: 13px;
+  box-shadow: 0 0 0 2px var(--ink);
+  background: #fff;
+  margin-bottom: 8px;
+}
+.staff .history div {
+  display: grid;
+  grid-template-columns: 0.9fr 1.2fr 0.6fr 1.3fr;
+  gap: 6px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--parch2);
+}
+.staff .history div.w {
+  background: #fff6d6;
+  font-weight: 700;
+}
+
+/* ชื่อ persona ยาว (เช่น THE AUTOMATION VISIONARY) ให้ขึ้น 2 บรรทัดแทนการล้นจอ */
+.hero .pname.long {
+  white-space: normal;
+  font-size: clamp(18px, 6.2vw, 28px);
+  line-height: 1.15;
+}
+
+/* ได้รางวัล: รูปใหญ่ให้พี่สตาฟดูได้ทันที */
+.prize-show {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 4px 0 2px;
+}
+.prize-icon.big {
+  width: 156px;
+  height: 156px;
+}
+.show-staff {
+  margin-top: 4px;
+  padding: 10px 14px;
+  font-weight: 700;
+  color: var(--ink);
+  background: #ffd23f;
+  box-shadow: 0 0 0 3px var(--ink), inset 0 -4px 0 #d99a12;
+}

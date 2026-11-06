@@ -197,13 +197,13 @@ export const QUESTIONS: Question[] = [
   {
     icon: "ladder",
     zone: "FUTURE TOWER",
-    text: "ขึ้นลิฟต์ไปชั้นบนสุดของ Future Tower — อีก 10 ปี คุณเห็นตัวเองเป็น...",
+    text: "ชั้นบนสุดของ Future Tower มีห้องทำงานในฝันรออยู่ 5 ห้อง คุณจะเปิดห้องไหน?",
     options: [
-      { text: "Software Architect ในบริษัทเทคระดับโลก", score: {"SE": 3} },
-      { text: "เจ้าของธุรกิจ / Business Analyst มือฉมัง", score: {"MMIT": 3} },
-      { text: "Animator / VFX Artist ในสตูดิโอระดับโลก", score: {"ANI": 3} },
-      { text: "Game Designer ที่มีเกมเป็นของตัวเอง", score: {"DG": 3} },
-      { text: "AI / Automation Engineer ที่พลิกโฉมอุตสาหกรรม", score: {"DII": 3} },
+      { text: "ห้องเงียบ ๆ มีปริศนายาก ๆ รอให้ค่อย ๆ ไขทีละขั้น", score: {"SE": 3} },
+      { text: "ห้องประชุมกระจกมองเห็นทั้งเมือง ได้คุยและตัดสินใจเรื่องสำคัญกับทีม", score: {"MMIT": 3} },
+      { text: "สตูดิโอที่เต็มไปด้วยภาพสเก็ตช์ แสงไฟ และสีสัน", score: {"ANI": 3} },
+      { text: "ห้องที่มีเพื่อน ๆ กำลังเล่นสิ่งที่คุณสร้าง แล้วหัวเราะกันลั่น", score: {"DG": 3} },
+      { text: "ห้องแล็บที่มีหุ่นยนต์และเครื่องจักรรอให้คุณลองสั่งงาน", score: {"DII": 3} },
     ],
   },
 ];

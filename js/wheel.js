@@ -1,18 +1,18 @@
 /* ==========================================================
-   CAMT NEXTOPIA — วงล้อรางวัล
-   - ผลลัพธ์สุ่มจาก "เปอร์เซ็นต์" ใน config/prizes.json (ไม่ใช่ขนาดช่องบนวงล้อ)
-   - ของรางวัลมีจำกัด: ของที่หมด/ปิดไว้ จะมีโอกาส 0%
-   - ใช้ crypto.getRandomValues เพื่อความสุ่มที่ยุติธรรม
+   CAMT NEXTOPIA — วงล้อรางวัล (เชื่อม Supabase)
+   - การสุ่มผล + ตัดสต็อก ทำบนเซิร์ฟเวอร์ (nextopia_spin) แบบ atomic
+     ทุกเครื่องใช้สต็อกเดียวกัน ของหมดแล้วจะไม่ออกอีกโดยอัตโนมัติ
+   - มือถือ 1 เครื่อง หมุนได้ 1 ครั้ง (เซิร์ฟเวอร์จำ device id)
+   - เครื่องบูธ (Kiosk) ที่สตาฟปลดล็อกด้วย PIN หมุนได้ทุกรอบ
+   - วงล้อเป็นแค่ภาพ หมุนไปหยุดตรงช่องของผลที่เซิร์ฟเวอร์ส่งมา
    ========================================================== */
 const Prize = (function () {
-  const DEFAULT_CONFIG = {
-    prizes: [
-      { id: "clicker1", name: "คลิกเกอร์ 1 ปุ่ม", emoji: "🖲️", stock: 5, chance: 1.0, enabled: true },
-      { id: "clicker3", name: "คลิกเกอร์ 3 ปุ่ม", emoji: "🎛️", stock: 5, chance: 0.8, enabled: true },
-      { id: "bag", name: "กระเป๋า CAMT", emoji: "🎒", stock: 2, chance: 0.25, enabled: true },
-      { id: "mug", name: "แก้วน้ำ CAMT", emoji: "🥤", stock: 2, chance: 0.25, enabled: true },
-    ],
-  };
+  const FALLBACK_PRIZES = [
+    { id: "clicker1", name: "คลิกเกอร์ 1 ปุ่ม", emoji: "🖲️", stock: 5, left: 5, available: true },
+    { id: "clicker3", name: "คลิกเกอร์ 3 ปุ่ม", emoji: "🎛️", stock: 5, left: 5, available: true },
+    { id: "bag", name: "กระเป๋า CAMT", emoji: "🎒", stock: 2, left: 2, available: true },
+    { id: "mug", name: "แก้วน้ำ CAMT", emoji: "🥤", stock: 2, left: 2, available: true },
+  ];
 
   const THANKS = [
     "ขอบคุณจ้า 💖",
@@ -25,20 +25,18 @@ const Prize = (function () {
 
   // ลำดับช่องบนวงล้อ (สลับรางวัลกับช่องขอบคุณให้ดูลุ้น)
   const SEGMENTS = [
-    { id: "bag" }, { id: "thx", i: 0 }, { id: "clicker1" }, { id: "thx", i: 1 },
-    { id: "clicker3" }, { id: "thx", i: 2 }, { id: "mug" }, { id: "thx", i: 3 },
-    { id: "clicker1" }, { id: "thx", i: 4 }, { id: "clicker3" }, { id: "thx", i: 5 },
+    { id: "bag" }, { id: "thx" }, { id: "clicker1" }, { id: "thx" },
+    { id: "clicker3" }, { id: "thx" }, { id: "mug" }, { id: "thx" },
+    { id: "clicker1" }, { id: "thx" }, { id: "clicker3" }, { id: "thx" },
   ];
 
   const LS = {
-    given: "nx_given_v1",
-    overrides: "nx_overrides_v1",
-    history: "nx_history_v1",
-    spun: "nx_spun_v1",
-    mode: "nx_mode_v1",
+    device: "nx_device_v1",
+    spun: "nx_spun_v2",
+    kioskPin: "nx_kiosk_pin_v1",
   };
 
-  let config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+  let prizes = FALLBACK_PRIZES.map((p) => ({ ...p }));
 
   function read(key, fb) {
     try {
@@ -51,33 +49,8 @@ const Prize = (function () {
   function write(key, v) {
     try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) { /* private mode */ }
   }
-
-  async function loadConfig() {
-    try {
-      const res = await fetch("config/prizes.json?ts=" + Date.now(), { cache: "no-store" });
-      if (res.ok) {
-        const j = await res.json();
-        if (j && Array.isArray(j.prizes)) config = j;
-      }
-    } catch (e) {
-      /* offline → ใช้ค่าเดิม */
-    }
-    return getPrizes();
-  }
-
-  /* รวมค่า config + ค่าที่แอดมินแก้ในเครื่อง + จำนวนที่แจกไปแล้วในเครื่อง */
-  function getPrizes() {
-    const ov = read(LS.overrides, {});
-    const given = read(LS.given, {});
-    return config.prizes.map((p) => {
-      const o = ov[p.id] || {};
-      const stock = o.stock != null ? o.stock : p.stock;
-      const chance = o.chance != null ? o.chance : p.chance;
-      const enabled = o.enabled != null ? o.enabled : p.enabled !== false;
-      const g = given[p.id] || 0;
-      const left = Math.max(0, stock - g);
-      return { ...p, stock, chance, enabled, given: g, left, effective: enabled && left > 0 ? chance : 0 };
-    });
+  function remove(key) {
+    try { localStorage.removeItem(key); } catch (e) {}
   }
 
   function rnd() {
@@ -86,36 +59,65 @@ const Prize = (function () {
     return a[0] / 4294967296;
   }
 
-  /* สุ่มผล: คืน prize object หรือ null (= ขอบคุณจ้า) */
-  function draw() {
-    const prizes = getPrizes();
-    const r = rnd() * 100;
-    let acc = 0;
-    for (const p of prizes) {
-      acc += p.effective;
-      if (r < acc) return p;
+  function deviceId() {
+    let id = read(LS.device, null);
+    if (!id) {
+      id = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + "-" + Math.floor(rnd() * 1e12).toString(36));
+      write(LS.device, id);
     }
-    return null;
+    return id;
   }
 
-  function recordWin(p) {
-    const given = read(LS.given, {});
-    given[p.id] = (given[p.id] || 0) + 1;
-    write(LS.given, given);
+  /* ---------- Supabase RPC ---------- */
+  async function rpc(fn, body, timeoutMs = 12000) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      const res = await fetch(`${NEXTOPIA_CONFIG.SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+        method: "POST",
+        headers: {
+          apikey: NEXTOPIA_CONFIG.SUPABASE_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body || {}),
+        signal: ctrl.signal,
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = (data && (data.message || data.error)) || `HTTP ${res.status}`;
+        throw new Error(msg);
+      }
+      return data;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
-  function addHistory(entry) {
-    const h = read(LS.history, []);
-    h.unshift(entry);
-    write(LS.history, h.slice(0, 2000));
+  async function loadStatus() {
+    try {
+      const data = await rpc("nextopia_status", {});
+      if (Array.isArray(data) && data.length) prizes = data;
+      return { ok: true, prizes };
+    } catch (e) {
+      return { ok: false, prizes };
+    }
+  }
+  function getPrizes() { return prizes; }
+
+  /* หมุน: คืน { prize_id, prize_name, emoji, code, time, already } หรือ throw */
+  async function spin(name, major) {
+    const body = { p_device: deviceId(), p_name: name || null, p_major: major || null };
+    const kpin = kioskPin();
+    if (kpin) body.p_kiosk_pin = kpin;
+    const r = await rpc("nextopia_spin", body);
+    if (r && r.error) throw new Error(r.error);
+    return r;
   }
 
-  function code(prizeId) {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    let s = "";
-    for (let i = 0; i < 5; i++) s += chars[Math.floor(rnd() * chars.length)];
-    const tag = { clicker1: "C1", clicker3: "C3", bag: "BG", mug: "MG" }[prizeId] || "TY";
-    return `NX-${tag}-${s}`;
+  async function admin(pin, action, payload) {
+    const r = await rpc("nextopia_admin", { p_pin: pin, p_action: action, p_payload: payload || {} }, 20000);
+    if (r && r.error) throw new Error(r.error);
+    return r;
   }
 
   /* ---------- วาดวงล้อ ---------- */
@@ -127,10 +129,15 @@ const Prize = (function () {
     thx: ["#1b1440", "#120c2e"],
   };
 
+  function shortName(id) {
+    return { clicker1: "คลิกเกอร์ 1 ปุ่ม", clicker3: "คลิกเกอร์ 3 ปุ่ม", bag: "กระเป๋า", mug: "แก้วน้ำ" }[id] || "";
+  }
+
   function drawWheel(canvas, rotation) {
     const ctx = canvas.getContext("2d");
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const size = canvas.clientWidth;
+    if (!size) return;
     if (canvas.width !== Math.floor(size * dpr)) {
       canvas.width = Math.floor(size * dpr);
       canvas.height = Math.floor(size * dpr);
@@ -140,7 +147,7 @@ const Prize = (function () {
     const R = c - 6;
     const n = SEGMENTS.length;
     const arc = (Math.PI * 2) / n;
-    const prizes = Object.fromEntries(config.prizes.map((p) => [p.id, p]));
+    const byId = Object.fromEntries(prizes.map((p) => [p.id, p]));
 
     ctx.clearRect(0, 0, size, size);
     ctx.save();
@@ -163,7 +170,6 @@ const Prize = (function () {
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // ข้อความ
       ctx.save();
       ctx.rotate(a0 + arc / 2);
       ctx.textAlign = "right";
@@ -174,7 +180,7 @@ const Prize = (function () {
         ctx.globalAlpha = 0.85;
         ctx.fillText("ขอบคุณจ้า", R - 14, 0);
       } else {
-        const p = prizes[s.id] || {};
+        const p = byId[s.id] || {};
         ctx.font = `${Math.max(16, size * 0.06)}px sans-serif`;
         ctx.fillText(p.emoji || "🎁", R - 12, 0);
         ctx.font = `700 ${Math.max(9, size * 0.03)}px Kanit, sans-serif`;
@@ -182,7 +188,6 @@ const Prize = (function () {
       }
       ctx.restore();
     }
-    // ไฟรอบวง
     for (let i = 0; i < n * 2; i++) {
       const a = (i / (n * 2)) * Math.PI * 2;
       ctx.beginPath();
@@ -192,7 +197,6 @@ const Prize = (function () {
     }
     ctx.restore();
 
-    // ขอบนีออน
     ctx.beginPath();
     ctx.arc(c, c, R, 0, Math.PI * 2);
     ctx.strokeStyle = "#ff5a1f";
@@ -203,38 +207,33 @@ const Prize = (function () {
     ctx.shadowBlur = 0;
   }
 
-  function shortName(id) {
-    return { clicker1: "คลิกเกอร์ 1 ปุ่ม", clicker3: "คลิกเกอร์ 3 ปุ่ม", bag: "กระเป๋า", mug: "แก้วน้ำ" }[id] || "";
-  }
-
-  /* หาองศาที่จะให้เข็ม (ด้านบน) ชี้ช่องที่ต้องการ */
+  /* หาองศาที่จะให้เข็ม (ด้านบน) ชี้ช่องของผลลัพธ์ */
   function targetRotation(resultId, current) {
     const n = SEGMENTS.length;
     const arc = (Math.PI * 2) / n;
-    const idxs = SEGMENTS.map((s, i) => (s.id === resultId ? i : -1)).filter((i) => i >= 0);
+    let idxs = SEGMENTS.map((s, i) => (s.id === resultId ? i : -1)).filter((i) => i >= 0);
+    if (!idxs.length) idxs = SEGMENTS.map((s, i) => (s.id === "thx" ? i : -1)).filter((i) => i >= 0);
     const idx = idxs[Math.floor(rnd() * idxs.length)];
-    // ช่อง i อยู่ที่มุม i*arc (เทียบกับด้านบน) → หมุน -i*arc ให้มาอยู่ด้านบน
     const jitter = (rnd() - 0.5) * arc * 0.7;
-    let target = -idx * arc + jitter;
     const full = Math.PI * 2;
+    const want = (((-idx * arc + jitter) % full) + full) % full;
     const base = current - (current % full);
-    target = base + full * (6 + Math.floor(rnd() * 3)) + ((target % full) + full) % full;
-    return target;
+    return base + full * (6 + Math.floor(rnd() * 3)) + want;
   }
 
   /* ---------- สถานะเครื่อง ---------- */
-  function mode() { return read(LS.mode, "personal"); }
-  function setMode(m) { write(LS.mode, m); }
-  function hasSpun() { return mode() === "personal" && !!read(LS.spun, null); }
-  function markSpun(entry) { write(LS.spun, entry); }
+  function kioskPin() { return read(LS.kioskPin, null); }
+  function isKiosk() { return !!kioskPin(); }
+  function setKiosk(pin) { pin ? write(LS.kioskPin, pin) : remove(LS.kioskPin); }
   function lastSpin() { return read(LS.spun, null); }
-  function resetSpinLock() { try { localStorage.removeItem(LS.spun); } catch (e) {} }
+  function markSpun(entry) { write(LS.spun, entry); }
+  function resetSpinLock() { remove(LS.spun); }
+  function hasSpun() { return !isKiosk() && !!lastSpin(); }
 
   return {
-    THANKS, SEGMENTS, LS,
-    loadConfig, getPrizes, draw, recordWin, addHistory, code,
-    drawWheel, targetRotation, rnd,
-    mode, setMode, hasSpun, markSpun, lastSpin, resetSpinLock,
-    read, write,
+    THANKS, SEGMENTS,
+    loadStatus, getPrizes, spin, admin,
+    drawWheel, targetRotation,
+    isKiosk, setKiosk, lastSpin, markSpun, resetSpinLock, hasSpun,
   };
 })();

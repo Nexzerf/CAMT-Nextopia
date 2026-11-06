@@ -1,9 +1,0 @@
-{
-  "_readme": "แก้ไฟล์นี้บน GitHub ได้ระหว่างงาน: chance = เปอร์เซ็นต์ต่อการหมุน 1 ครั้ง, enabled=false เมื่อของหมดแล้ว (ทุกเครื่องจะโหลดค่าใหม่ทุกครั้งก่อนหมุน)",
-  "prizes": [
-    { "id": "clicker1", "name": "คลิกเกอร์ 1 ปุ่ม", "emoji": "🖲️", "stock": 5, "chance": 1.0, "enabled": true },
-    { "id": "clicker3", "name": "คลิกเกอร์ 3 ปุ่ม", "emoji": "🎛️", "stock": 5, "chance": 0.8, "enabled": true },
-    { "id": "bag",      "name": "กระเป๋า CAMT",    "emoji": "🎒", "stock": 2, "chance": 0.25, "enabled": true },
-    { "id": "mug",      "name": "แก้วน้ำ CAMT",    "emoji": "🥤", "stock": 2, "chance": 0.25, "enabled": true }
-  ]
-}

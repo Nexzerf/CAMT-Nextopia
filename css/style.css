@@ -372,3 +372,26 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+/* ---------- staff console (server) ---------- */
+.admin-card h3 { font-size: 16px; margin: 22px 0 10px; color: var(--amber); }
+.admin-msg { color: #ff6b8b; font-size: 14px; min-height: 1em; margin: 6px 0; }
+.admin-inline { display: flex; gap: 8px; }
+.admin-inline input {
+  flex: 1; font: inherit; font-size: 18px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink);
+  background: rgba(0,0,0,0.35); border: 1px solid var(--stroke); border-radius: 12px; padding: 8px 12px;
+}
+.admin-lookup { display: grid; gap: 6px; margin-top: 10px; font-size: 14px; }
+.admin-lookup .good { color: var(--green); }
+.admin-lookup .warn { color: var(--amber); }
+.admin-lookup .bad { color: #ff6b8b; }
+.admin-lookup .btn { justify-self: start; }
+.btn.danger { border-color: rgba(255,45,85,0.6); color: #ff6b8b; }
+#admin-lock[hidden], #admin-body[hidden], .claim[hidden] { display: none; }
+@media (max-width: 560px) {
+  .admin { padding: 10px; }
+  .admin-card { padding: 14px; margin-top: 10px; }
+  .admin-table { font-size: 12px; }
+  .admin-table input[type="number"] { width: 58px; }
+  .admin-history div { grid-template-columns: 1fr 1fr; }
+}

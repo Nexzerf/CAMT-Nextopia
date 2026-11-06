@@ -2,7 +2,6 @@
    CAMT NEXTOPIA — ตัวควบคุมหลัก
    ========================================================== */
 (function () {
-  const ADMIN_PIN = "2026"; // เปลี่ยน PIN สตาฟได้ที่นี่
   const ORDER = ["SE", "MMIT", "ANI", "DG", "DII"];
   const $ = (id) => document.getElementById(id);
 
@@ -262,82 +261,112 @@
     show("s-wheel");
     const wheel = $("wheel");
     Prize.drawWheel(wheel, state.rotation);
-    await Prize.loadConfig();
-    Prize.drawWheel(wheel, state.rotation);
-    renderPrizeList();
     updateSpinButton();
+    const st = await Prize.loadStatus();
+    Prize.drawWheel(wheel, state.rotation);
+    renderPrizeList(st.ok);
   }
 
-  function renderPrizeList() {
+  function renderPrizeList(online) {
     const ps = Prize.getPrizes();
     $("prize-list").innerHTML = ps
       .map((p) => {
-        const out = !p.enabled || p.left <= 0;
-        return `<li class="${out ? "out" : ""}"><span>${p.emoji}</span>${escapeHTML(p.name)}<small>${
-          out ? "หมดแล้ว" : `${p.stock} รางวัล`
-        }</small></li>`;
+        const out = !p.available;
+        const label = out ? "หมดแล้ว" : online === false ? `${p.stock} รางวัล` : `เหลือ ${p.left}/${p.stock}`;
+        return `<li class="${out ? "out" : ""}"><span>${escapeHTML(p.emoji)}</span>${escapeHTML(p.name)}<small>${label}</small></li>`;
       })
       .join("");
   }
 
-  function updateSpinButton() {
+  function setSpinUI(enabled, label, sub) {
     const btn = $("btn-spin");
-    const sub = $("wheel-sub");
-    if (Prize.mode() === "personal" && Prize.hasSpun()) {
+    btn.disabled = !enabled;
+    btn.textContent = label;
+    if (sub != null) $("wheel-sub").textContent = sub;
+  }
+
+  function updateSpinButton() {
+    if (state.spinning) return;
+    if (Prize.hasSpun()) {
       const last = Prize.lastSpin();
-      btn.disabled = true;
-      btn.textContent = "✓";
-      sub.innerHTML = last && last.prizeId
-        ? `เครื่องนี้หมุนไปแล้ว — คุณได้ <b>${escapeHTML(last.prizeName)}</b> (รหัส ${escapeHTML(last.code)}) <button class="link" id="show-claim">ดูรหัสรับรางวัล</button>`
-        : "เครื่องนี้หมุนไปแล้ว 1 ครั้ง ขอบคุณที่มาร่วมสนุกนะ 💖";
-      const sc = $("show-claim");
-      if (sc) sc.onclick = () => openModal(last, true);
+      setSpinUI(false, "✓");
+      const sub = $("wheel-sub");
+      if (last && last.prize_id) {
+        sub.innerHTML = `เครื่องนี้หมุนไปแล้ว — คุณได้ <b>${escapeHTML(last.prize_name)}</b> <button class="link" id="show-claim">ดูรหัสรับรางวัล</button>`;
+        $("show-claim").onclick = () => openModal(last, true);
+      } else {
+        sub.textContent = "เครื่องนี้หมุนไปแล้ว 1 ครั้ง ขอบคุณที่มาร่วมสนุกนะ 💖";
+      }
       return;
     }
-    if (Prize.mode() === "kiosk" && !state.canSpinThisRound) {
-      btn.disabled = true;
-      btn.textContent = "✓";
-      sub.textContent = "รอบนี้หมุนไปแล้ว — ให้คนถัดไปเล่นตอบคำถามก่อนนะ";
+    if (Prize.isKiosk() && !state.canSpinThisRound) {
+      setSpinUI(false, "✓", "รอบนี้หมุนไปแล้ว — ให้คนถัดไปเล่นตอบคำถามก่อนนะ");
       return;
     }
-    btn.disabled = false;
-    btn.textContent = "SPIN";
-    sub.textContent = "หมุนได้ 1 ครั้ง ลุ้นของรางวัลจาก CAMT!";
+    setSpinUI(true, "SPIN", Prize.isKiosk() ? "โหมดบูธ · หมุนได้ 1 ครั้งต่อการเล่น 1 รอบ" : "หมุนได้ 1 ครั้ง ลุ้นของรางวัลจาก CAMT!");
   }
 
   $("btn-spin").addEventListener("click", async () => {
     if (state.spinning) return;
-    if (Prize.hasSpun()) return updateSpinButton();
-    if (Prize.mode() === "kiosk" && !state.canSpinThisRound) return updateSpinButton();
+    if (Prize.hasSpun() || (Prize.isKiosk() && !state.canSpinThisRound)) return updateSpinButton();
     state.spinning = true;
-    $("btn-spin").disabled = true;
+    setSpinUI(false, "...", "กำลังเชื่อมต่อวงโคจรนำโชค...");
 
-    await Prize.loadConfig(); // โหลดค่าล่าสุด (กรณีสตาฟปิดรางวัลที่หมด)
-    const prize = Prize.draw();
-    const resultId = prize ? prize.id : "thx";
-    const now = new Date();
+    // หมุนวนรอระหว่างรอผลจากเซิร์ฟเวอร์
+    const wheel = $("wheel");
+    let waiting = true;
+    let lastT = performance.now();
+    (function idle(now) {
+      if (!waiting) return;
+      state.rotation += ((now - lastT) / 1000) * 6;
+      lastT = now;
+      Prize.drawWheel(wheel, state.rotation);
+      requestAnimationFrame(idle);
+    })(lastT);
+
+    let r;
+    try {
+      r = await Prize.spin(state.name, state.result);
+    } catch (e) {
+      waiting = false;
+      state.spinning = false;
+      const msg = String(e && e.message || "");
+      if (/already spun/.test(msg)) {
+        setSpinUI(false, "✓", "เครื่องนี้หมุนไปแล้ว");
+      } else if (/kiosk pin/.test(msg)) {
+        Prize.setKiosk(null);
+        setSpinUI(true, "SPIN", "PIN โหมดบูธไม่ถูกต้อง (ถูกเปลี่ยน?) — ปิดโหมดบูธแล้ว ลองหมุนอีกครั้ง");
+      } else {
+        setSpinUI(true, "SPIN", "เชื่อมต่อไม่ได้ 😢 ตรวจสอบอินเทอร์เน็ตแล้วกดหมุนอีกครั้ง");
+      }
+      return;
+    }
+    waiting = false;
+
     const entry = {
-      time: now.toISOString(),
-      name: state.name || "-",
-      major: state.result || "-",
-      prizeId: prize ? prize.id : null,
-      prizeName: prize ? prize.name : "ขอบคุณจ้า",
-      emoji: prize ? prize.emoji : "💖",
-      code: prize ? Prize.code(prize.id) : "",
+      prize_id: r.prize_id || null,
+      prize_name: r.prize_id ? r.prize_name : "ขอบคุณจ้า",
+      emoji: r.prize_id ? r.emoji : "💖",
+      code: r.code || "",
+      time: r.time || new Date().toISOString(),
     };
-    // บันทึกก่อนเริ่มหมุน กันการรีเฟรชหน้าเพื่อหมุนใหม่
-    if (prize) Prize.recordWin(prize);
-    Prize.addHistory(entry);
-    Prize.markSpun(entry);
+    if (!Prize.isKiosk()) Prize.markSpun(entry);
     state.canSpinThisRound = false;
 
+    if (r.already) {
+      // เครื่องนี้เคยหมุนแล้ว (เช่น ล้างแคชแล้วกลับมา) — แสดงผลเดิม ไม่หมุนใหม่
+      state.spinning = false;
+      updateSpinButton();
+      openModal(entry, true);
+      return;
+    }
+
     const start = state.rotation;
-    const end = Prize.targetRotation(resultId, start);
+    const end = Prize.targetRotation(entry.prize_id || "thx", start);
     const dur = 5200 + Math.random() * 800;
     const t0 = performance.now();
     const n = Prize.SEGMENTS.length;
     let lastSeg = -1;
-    const wheel = $("wheel");
 
     function ease(x) { return 1 - Math.pow(1 - x, 4); }
     function step(now) {
@@ -354,8 +383,8 @@
         state.spinning = false;
         state.rotation = end % (Math.PI * 2);
         openModal(entry, false);
-        renderPrizeList();
         updateSpinButton();
+        Prize.loadStatus().then((st) => renderPrizeList(st.ok));
       }
     }
     requestAnimationFrame(step);
@@ -364,12 +393,12 @@
   /* ---------- MODAL ---------- */
   let clockTimer = null;
   function openModal(entry, replay) {
-    const win = !!entry.prizeId;
-    $("m-emoji").textContent = entry.emoji;
+    const win = !!entry.prize_id;
+    $("m-emoji").textContent = entry.emoji || (win ? "🎁" : "💖");
     $("modal-card").classList.toggle("win", win);
     if (win) {
       $("m-title").textContent = replay ? "รางวัลของคุณ" : "ยินดีด้วย! 🎉";
-      $("m-desc").innerHTML = `คุณได้รับ <b>${escapeHTML(entry.prizeName)}</b>`;
+      $("m-desc").innerHTML = `คุณได้รับ <b>${escapeHTML(entry.prize_name)}</b>`;
       $("m-claim").hidden = false;
       $("m-code").textContent = entry.code;
       clearInterval(clockTimer);
@@ -413,7 +442,8 @@
     }
   }
 
-  /* ---------- ADMIN (แตะโลโก้ 5 ครั้ง) ---------- */
+  /* ---------- STAFF CONSOLE (แตะโลโก้ 5 ครั้ง หรือเปิด /#staff) ---------- */
+  let adminPin = null;
   let taps = 0, tapTimer = null;
   $("brand").addEventListener("click", () => {
     taps++;
@@ -425,109 +455,186 @@
     }
   });
   if (location.hash === "#staff") setTimeout(openAdmin, 300);
+  window.addEventListener("hashchange", () => location.hash === "#staff" && openAdmin());
 
   function openAdmin() {
     $("admin").hidden = false;
     $("admin-lock").hidden = false;
     $("admin-body").hidden = true;
     $("admin-pin").value = "";
+    $("admin-msg").textContent = "";
     setTimeout(() => $("admin-pin").focus(), 50);
   }
-  $("admin-close").addEventListener("click", () => ($("admin").hidden = true));
+  $("admin-close").addEventListener("click", () => {
+    $("admin").hidden = true;
+    adminPin = null;
+  });
   $("admin-unlock").addEventListener("click", unlockAdmin);
   $("admin-pin").addEventListener("keydown", (e) => e.key === "Enter" && unlockAdmin());
 
-  async function unlockAdmin() {
-    if ($("admin-pin").value !== ADMIN_PIN) {
-      $("admin-pin").classList.add("shake");
-      setTimeout(() => $("admin-pin").classList.remove("shake"), 400);
-      return;
-    }
-    $("admin-lock").hidden = true;
-    $("admin-body").hidden = false;
-    await Prize.loadConfig();
-    renderAdmin();
+  function adminError(e) {
+    const m = String((e && e.message) || e);
+    $("admin-msg").textContent = /invalid pin/.test(m)
+      ? "PIN ไม่ถูกต้อง"
+      : /too many/.test(m)
+      ? "ใส่ PIN ผิดหลายครั้งเกินไป รอ 5 นาที"
+      : "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้: " + m;
   }
 
-  function renderAdmin() {
-    $("admin-kiosk").checked = Prize.mode() === "kiosk";
-    const ps = Prize.getPrizes();
+  async function unlockAdmin() {
+    const pin = $("admin-pin").value.trim();
+    $("admin-msg").textContent = "กำลังตรวจสอบ...";
+    try {
+      const data = await Prize.admin(pin, "status");
+      adminPin = pin;
+      $("admin-msg").textContent = "";
+      $("admin-lock").hidden = true;
+      $("admin-body").hidden = false;
+      renderAdmin(data);
+    } catch (e) {
+      $("admin-pin").classList.add("shake");
+      setTimeout(() => $("admin-pin").classList.remove("shake"), 400);
+      adminError(e);
+    }
+  }
+
+  async function adminCall(action, payload) {
+    $("admin-status").textContent = "กำลังบันทึก...";
+    try {
+      const data = await Prize.admin(adminPin, action, payload);
+      renderAdmin(data);
+      $("admin-status").textContent = "อัปเดตแล้ว " + new Date().toLocaleTimeString("th-TH");
+      return data;
+    } catch (e) {
+      $("admin-status").textContent = "";
+      adminError(e);
+      throw e;
+    }
+  }
+
+  function renderAdmin(data) {
+    $("admin-kiosk").checked = Prize.isKiosk();
+    const ps = data.prizes || [];
     $("admin-prizes").innerHTML = ps
       .map(
-        (p) => `<tr data-id="${p.id}">
-        <td>${p.emoji} ${escapeHTML(p.name)}</td>
-        <td><input type="number" min="0" step="1" class="a-stock" value="${p.stock}"></td>
-        <td>${p.given}</td>
-        <td><b>${p.left}</b></td>
-        <td><input type="number" min="0" max="100" step="0.05" class="a-chance" value="${p.chance}"></td>
+        (p) => `<tr data-id="${escapeHTML(p.id)}">
+        <td>${escapeHTML(p.emoji)} ${escapeHTML(p.name)}</td>
+        <td><input type="number" min="0" step="1" class="a-stock" value="${Number(p.stock)}"></td>
+        <td>${Number(p.given)}</td>
+        <td><b>${Number(p.left)}</b></td>
+        <td><input type="number" min="0" max="100" step="0.05" class="a-chance" value="${Number(p.chance)}"></td>
         <td><input type="checkbox" class="a-enabled" ${p.enabled ? "checked" : ""}></td>
       </tr>`
       )
       .join("");
-    const totalWin = ps.reduce((a, p) => a + p.effective, 0);
+    const totalWin = ps.reduce((a, p) => a + (p.enabled && p.left > 0 ? Number(p.chance) : 0), 0);
     $("admin-odds").textContent =
-      `โอกาสได้รางวัลรวมต่อการหมุน ≈ ${totalWin.toFixed(2)}% (ประมาณ 1 ใน ${totalWin > 0 ? Math.round(100 / totalWin) : "∞"} คน) · ` +
-      `ที่เหลือ ${(100 - totalWin).toFixed(2)}% = ขอบคุณจ้า`;
+      `โอกาสได้รางวัลรวมต่อการหมุนตอนนี้ ≈ ${totalWin.toFixed(2)}% (ประมาณ 1 ใน ${totalWin > 0 ? Math.round(100 / totalWin) : "∞"} คน) · ` +
+      `รางวัลที่หมดแล้วจะไม่ออกอีกโดยอัตโนมัติ`;
 
-    const h = Prize.read(Prize.LS.history, []);
-    const wins = h.filter((x) => x.prizeId).length;
-    $("admin-stats").textContent = `หมุนทั้งหมด ${h.length} ครั้ง · ได้รางวัล ${wins} ครั้ง`;
+    const by = data.by_major || {};
+    const majors = Object.keys(by)
+      .map((k) => `${(MAJORS[k] && MAJORS[k].code) || k} ${by[k]}`)
+      .join(" · ");
+    $("admin-stats").textContent = `หมุนทั้งหมด ${data.total_spins} ครั้ง (ทุกเครื่อง) · ได้รางวัล ${data.total_wins} ครั้ง${majors ? " · " + majors : ""}`;
+
+    const h = data.recent || [];
     $("admin-history").innerHTML =
       h
-        .slice(0, 200)
         .map(
-          (x) => `<div class="${x.prizeId ? "w" : ""}"><span>${new Date(x.time).toLocaleString("th-TH")}</span>
-          <span>${escapeHTML(x.name)}</span><span>${escapeHTML(x.major)}</span>
-          <span>${x.emoji} ${escapeHTML(x.prizeName)}</span><span>${escapeHTML(x.code || "")}</span></div>`
+          (x) => `<div class="${x.prize_id ? "w" : ""}"><span>${new Date(x.time).toLocaleString("th-TH")}</span>
+          <span>${escapeHTML(x.name || "-")}</span><span>${escapeHTML(x.major || "-")}</span>
+          <span>${x.prize_id ? escapeHTML(x.emoji + " " + x.prize_name) : "💖 ขอบคุณจ้า"}</span>
+          <span>${escapeHTML(x.code || "")}${x.claimed_at ? " ✅" : ""}</span></div>`
         )
         .join("") || `<p class="muted small">ยังไม่มีประวัติ</p>`;
+
+    if (data.lookup !== undefined) renderLookup(data.lookup);
   }
 
+  function renderLookup(l) {
+    const box = $("admin-lookup");
+    if (!l) {
+      box.innerHTML = `<b class="bad">❌ ไม่พบรหัสนี้ — อาจเป็นรหัสปลอม</b>`;
+      return;
+    }
+    box.innerHTML =
+      `<b class="${l.claimed_at ? "warn" : "good"}">${l.claimed_at ? "⚠️ รหัสนี้รับของไปแล้ว" : "✅ รหัสถูกต้อง ยังไม่ได้รับของ"}</b>` +
+      `<span>${escapeHTML(l.prize_name || "-")} · ${escapeHTML(l.name || "-")} · ${new Date(l.time).toLocaleString("th-TH")}</span>` +
+      (l.claimed_at
+        ? `<span>รับไปเมื่อ ${new Date(l.claimed_at).toLocaleString("th-TH")}</span>`
+        : `<button class="btn primary small" id="admin-claim">มอบของแล้ว (ทำเครื่องหมายว่ารับแล้ว)</button>`);
+    const btn = $("admin-claim");
+    if (btn) btn.onclick = () => adminCall("claim", { code: l.code }).then(() => checkCode());
+  }
+
+  async function checkCode() {
+    const code = $("admin-code").value.trim().toUpperCase();
+    if (!code) return;
+    try {
+      const data = await Prize.admin(adminPin, "status", { code });
+      renderAdmin(data);
+    } catch (e) {
+      adminError(e);
+    }
+  }
+  $("admin-check").addEventListener("click", checkCode);
+  $("admin-code").addEventListener("keydown", (e) => e.key === "Enter" && checkCode());
+
+  $("admin-refresh").addEventListener("click", () => adminCall("status").catch(() => {}));
+
   $("admin-kiosk").addEventListener("change", (e) => {
-    Prize.setMode(e.target.checked ? "kiosk" : "personal");
-    if (e.target.checked) Prize.resetSpinLock();
+    Prize.setKiosk(e.target.checked ? adminPin : null);
+    if (e.target.checked) {
+      Prize.resetSpinLock();
+      state.canSpinThisRound = true;
+    }
     updateSpinButton();
   });
+
   $("admin-save").addEventListener("click", () => {
-    const ov = {};
+    const prizes = [];
     document.querySelectorAll("#admin-prizes tr").forEach((tr) => {
-      ov[tr.dataset.id] = {
+      prizes.push({
+        id: tr.dataset.id,
         stock: Math.max(0, parseInt(tr.querySelector(".a-stock").value, 10) || 0),
         chance: Math.min(100, Math.max(0, parseFloat(tr.querySelector(".a-chance").value) || 0)),
         enabled: tr.querySelector(".a-enabled").checked,
-      };
+      });
     });
-    Prize.write(Prize.LS.overrides, ov);
-    renderAdmin();
-    renderPrizeList();
+    adminCall("update_prizes", { prizes })
+      .then(() => Prize.loadStatus())
+      .then((st) => renderPrizeList(st.ok))
+      .catch(() => {});
   });
-  $("admin-reset-given").addEventListener("click", () => {
-    if (!confirm("รีเซ็ตยอดที่แจกไปแล้วในเครื่องนี้ใช่ไหม?")) return;
-    Prize.write(Prize.LS.given, {});
-    renderAdmin();
-    renderPrizeList();
+
+  $("admin-reset-all").addEventListener("click", () => {
+    if (!confirm("ล้างประวัติการหมุนและยอดแจกทั้งหมดของทุกเครื่อง?\n(ใช้ก่อนเริ่มงานจริงเท่านั้น)")) return;
+    if (prompt('พิมพ์คำว่า RESET เพื่อยืนยัน') !== "RESET") return;
+    adminCall("reset_all").catch(() => {});
   });
-  $("admin-reset-ov").addEventListener("click", () => {
-    Prize.write(Prize.LS.overrides, {});
-    renderAdmin();
-    renderPrizeList();
-  });
+
   $("admin-unlock-spin").addEventListener("click", () => {
     Prize.resetSpinLock();
     state.canSpinThisRound = true;
     updateSpinButton();
-    alert("ปลดล็อกแล้ว เครื่องนี้หมุนได้อีก 1 ครั้ง");
+    alert("ล้างการจำในเบราว์เซอร์แล้ว (ถ้าเครื่องนี้เคยหมุนในโหมดปกติ เซิร์ฟเวอร์จะยังแสดงผลเดิม — ใช้โหมดบูธแทน)");
   });
-  $("admin-export").addEventListener("click", () => {
-    const h = Prize.read(Prize.LS.history, []);
-    const rows = [["time", "name", "major", "prize", "code"]].concat(
-      h.map((x) => [x.time, x.name, x.major, x.prizeName, x.code])
-    );
-    const csv = "﻿" + rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    a.download = `nextopia-history-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
+
+  $("admin-export").addEventListener("click", async () => {
+    try {
+      const data = await Prize.admin(adminPin, "status", { limit: 20000 });
+      const rows = [["time", "name", "major", "prize", "code", "claimed_at", "kiosk"]].concat(
+        (data.recent || []).map((x) => [x.time, x.name || "", x.major || "", x.prize_name || "ขอบคุณจ้า", x.code || "", x.claimed_at || "", x.kiosk])
+      );
+      const csv = "﻿" + rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+      a.download = `nextopia-history-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+    } catch (e) {
+      adminError(e);
+    }
   });
 
   function escapeHTML(s) {

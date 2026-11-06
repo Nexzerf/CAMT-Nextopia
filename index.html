@@ -175,32 +175,49 @@
       </div>
       <div id="admin-lock">
         <p class="muted">ใส่ PIN สตาฟ</p>
-        <input id="admin-pin" type="password" inputmode="numeric" maxlength="8" placeholder="PIN" />
+        <input id="admin-pin" type="password" inputmode="numeric" maxlength="12" placeholder="PIN" />
         <button class="btn primary small" id="admin-unlock">เข้าสู่ระบบ</button>
       </div>
+      <p class="admin-msg" id="admin-msg"></p>
       <div id="admin-body" hidden>
-        <div class="admin-row">
-          <label><input type="checkbox" id="admin-kiosk" /> โหมดบูธ (Kiosk) — เครื่องนี้ใช้ร่วมกันหลายคน หมุนได้ทุกรอบที่เล่นจบ</label>
+        <div class="admin-lookup-box">
+          <h3>ตรวจรหัสรับรางวัล</h3>
+          <div class="admin-inline">
+            <input id="admin-code" placeholder="NX-BG-XXXXX" autocomplete="off" />
+            <button class="btn primary small" id="admin-check">ตรวจ</button>
+          </div>
+          <div class="admin-lookup" id="admin-lookup"></div>
         </div>
+
+        <h3>ของรางวัล (ใช้ร่วมกันทุกเครื่อง)</h3>
         <table class="admin-table">
           <thead><tr><th>รางวัล</th><th>สต็อก</th><th>แจกแล้ว</th><th>เหลือ</th><th>โอกาส %</th><th>เปิด</th></tr></thead>
           <tbody id="admin-prizes"></tbody>
         </table>
         <p class="muted small" id="admin-odds"></p>
         <div class="admin-actions">
-          <button class="btn primary small" id="admin-save">บันทึก</button>
-          <button class="btn ghost small" id="admin-reset-given">รีเซ็ตยอดแจก</button>
-          <button class="btn ghost small" id="admin-reset-ov">ใช้ค่าจาก prizes.json</button>
-          <button class="btn ghost small" id="admin-unlock-spin">ปลดล็อกการหมุนเครื่องนี้</button>
-          <button class="btn ghost small" id="admin-export">ดาวน์โหลดประวัติ (CSV)</button>
+          <button class="btn primary small" id="admin-save">บันทึกการตั้งค่า</button>
+          <button class="btn ghost small" id="admin-refresh">รีเฟรช</button>
+          <span class="muted small" id="admin-status"></span>
         </div>
-        <h3>ประวัติการหมุน (เครื่องนี้)</h3>
+
+        <div class="admin-row">
+          <label><input type="checkbox" id="admin-kiosk" /> โหมดบูธ (Kiosk) — แท็บเล็ตเครื่องนี้ใช้ร่วมกันหลายคน หมุนได้ 1 ครั้งต่อการเล่นจบ 1 รอบ</label>
+        </div>
+
+        <h3>ประวัติการหมุน (ทุกเครื่อง)</h3>
         <p class="muted small" id="admin-stats"></p>
         <div class="admin-history" id="admin-history"></div>
+        <div class="admin-actions">
+          <button class="btn ghost small" id="admin-export">ดาวน์โหลดประวัติทั้งหมด (CSV)</button>
+          <button class="btn ghost small" id="admin-unlock-spin">ล้างการจำในเบราว์เซอร์นี้</button>
+          <button class="btn ghost small danger" id="admin-reset-all">ล้างข้อมูลทั้งหมด (ก่อนเริ่มงาน)</button>
+        </div>
       </div>
     </div>
   </div>
 
+  <script src="js/config.js"></script>
   <script src="js/data.js"></script>
   <script src="js/city.js"></script>
   <script src="js/wheel.js"></script>

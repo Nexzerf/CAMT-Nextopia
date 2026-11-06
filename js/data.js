@@ -13,9 +13,9 @@ const MAJORS = {
     districtTH: "หอคอยโค้ด",
     persona: "The Code Architect",
     personaTH: "สถาปนิกแห่งโค้ด",
-    icon: "</>",
-    color: "#00e5ff",
-    color2: "#0077ff",
+    icon: "code",
+    color: "#2F62D9",
+    ink: "#FFFFFF",
     tagline: "คุณคือคนที่สร้างระบบที่ทั้งเมืองต้องพึ่งพา",
     desc:
       "คุณชอบคิดเป็นระบบ แก้ปัญหาทีละขั้น และรู้สึกฟินทุกครั้งที่โค้ดรันผ่าน " +
@@ -46,9 +46,9 @@ const MAJORS = {
     districtTH: "ศูนย์กลางธุรกิจเน็กซัส",
     persona: "The Nexus Strategist",
     personaTH: "นักวางกลยุทธ์ดิจิทัล",
-    icon: "◈",
-    color: "#ffb800",
-    color2: "#ff6a00",
+    icon: "chart",
+    color: "#E9A319",
+    ink: "#161616",
     tagline: "คุณคือคนที่เชื่อมเทคโนโลยีเข้ากับธุรกิจ",
     desc:
       "คุณมองเห็นภาพรวม ชอบวางแผน อ่านข้อมูลเป็น และรู้ว่าเทคโนโลยีจะสร้างมูลค่าได้อย่างไร " +
@@ -81,9 +81,9 @@ const MAJORS = {
     districtTH: "โดมปริซึมสตูดิโอ",
     persona: "The Dream Weaver",
     personaTH: "ผู้ถักทอจินตนาการ",
-    icon: "✦",
-    color: "#ff3df2",
-    color2: "#8a2bff",
+    icon: "film",
+    color: "#D8457F",
+    ink: "#FFFFFF",
     tagline: "คุณคือคนที่เปลี่ยนจินตนาการให้กลายเป็นภาพ",
     desc:
       "คุณมีตาที่มองเห็นความงาม ชอบเล่าเรื่องผ่านภาพ แสง สี และการเคลื่อนไหว " +
@@ -117,9 +117,9 @@ const MAJORS = {
     districtTH: "อารีน่าแห่งเกม",
     persona: "The World Builder",
     personaTH: "ผู้สร้างโลกเสมือน",
-    icon: "▶",
-    color: "#39ff88",
-    color2: "#00b36b",
+    icon: "gamepad",
+    color: "#2E9E68",
+    ink: "#FFFFFF",
     tagline: "คุณคือคนที่สร้างโลกใหม่ให้คนอื่นเข้าไปเล่น",
     desc:
       "คุณรักความสนุก ชอบผสมทั้งศิลปะ เรื่องราว และโค้ดเข้าด้วยกัน " +
@@ -151,9 +151,9 @@ const MAJORS = {
     districtTH: "โรงงานซินธ์ฟอร์จ",
     persona: "The Automation Visionary",
     personaTH: "ผู้พลิกโฉมอุตสาหกรรม",
-    icon: "⚙",
-    color: "#ff5a1f",
-    color2: "#ff2d55",
+    icon: "robot",
+    color: "#7A55CC",
+    ink: "#FFFFFF",
     tagline: "คุณคือคนที่ทำให้ทุกอย่างทำงานได้เอง",
     desc:
       "คุณชอบลงมือ ชอบเห็นของจริงทำงาน และหาทางทำให้งานซ้ำ ๆ หายไปด้วย AI โดรน และระบบอัตโนมัติ " +

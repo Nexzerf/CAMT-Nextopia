@@ -5,23 +5,20 @@
 จบเกมแล้วมี **วงล้อนำโชค** ลุ้นของรางวัล
 
 ## ลำดับการเล่น
-1. **Intro**: ใส่ชื่อเล่น (ไม่บังคับ) แล้วกดเข้าเมือง
-2. **Story**: AI "CAMI" เล่าเรื่องสั้น ๆ (แตะข้อความเพื่อข้ามได้)
-3. **Quiz**: 6 คำถาม ใน 6 โซนของเมือง (ลำดับตัวเลือกสุ่มทุกครั้ง)
-4. **Scan → Result**: บอกสาขาที่เหมาะ + persona + วิชาเด่น + อาชีพ + % ความเข้ากันกับทุกสาขา + จุดเด่น CAMT
-5. **วงล้อรางวัล**
-
-| เขตในเมือง | สาขา |
-|---|---|
-| CODE SPIRE | Software Engineering (SE) |
-| NEXUS EXCHANGE | Modern Management and IT (MMIT) |
-| PRISM STUDIO | Animation and Visual Effect (ANI) |
-| ARCADE ARENA | Digital Game (DG) |
-| SYNTH FORGE | Digital Industry Integration (DII) |
+1. **Intro**: เห็นเมืองพิกเซลพร้อมพลเมืองทุกคนที่เล่นไปแล้ว
+2. **สร้างตัวละคร**: ชื่อเล่น + สีผิว ทรงผม สีผม เสื้อ ของแต่ง (มีปุ่มสุ่ม)
+3. **ด่านเข้าเมือง** แล้วตอบ **6 คำถาม** (ตัวละครเดินไปตามเส้นทางทีละโซน)
+4. **ผลลัพธ์**: สาขาที่ใช่ + persona + วิชา/อาชีพ, ตัวละครย้ายเข้าเขตของสาขานั้นในเมือง (ใส่เสื้อสีประจำเขต)
+   - **แชร์ลงสตอรี่**: สร้างการ์ด 1080×1920 → มือถือเปิดแผ่นแชร์ (เลือก IG/FB Story), คอมดาวน์โหลด PNG
+   - **ดูบ้านในเมือง**: ลากดูเมือง 5 เขต แตะคนเพื่อดูชื่อ ปุ่ม "ตัวฉัน" พากลับไปหาตัวเอง
+   - **หมุนวงล้อรางวัล**
 
 ## เทคนิค
 - หน้าเว็บเป็น HTML/CSS/JS ล้วน ไม่ต้อง build ใช้กับ **GitHub Pages / Vercel / Netlify** ได้เลย
-- ระบบรางวัลใช้ **Supabase** (project `Project2`, schema `nextopia`) เรียกเซิร์ฟเวอร์แค่ตอนกดหมุน 1 ครั้งต่อคน
+- ระบบรางวัล + พลเมืองใช้ **Supabase** (project `Project2`, schema `nextopia`)
+- เว็บเรียก API ผ่าน `/api/rpc/*` บนโดเมนเดียวกัน (`vercel.json` ส่งต่อให้ Supabase) เพื่อให้ใช้ได้แม้เครือข่ายบล็อก `*.supabase.co`
+  ถ้ารันในเครื่องโดยไม่มี proxy จะสลับไปเรียก Supabase ตรงอัตโนมัติ
+- ชื่อเล่นกรองคำไม่เหมาะสม (`nextopia.banned_words`) และสตาฟซ่อนตัวละครได้จาก Staff Console
 - เปิดดูในเครื่อง: `python3 -m http.server` แล้วเข้า `http://localhost:8000`
 
 ## 🎁 ระบบของรางวัล (อัตโนมัติ ไม่ต้องแก้ config)
@@ -62,8 +59,13 @@ index.html             หน้าเว็บทั้งหมด
 css/style.css          ธีมนีออนเมืองอนาคต
 js/config.js           URL + publishable key ของ Supabase
 js/data.js             ข้อมูลสาขา + คำถาม (แก้คำถามได้ที่นี่)
-js/city.js             ฉากเมืองอนาคตแบบเคลื่อนไหว (canvas)
+js/icons.js            ชุดไอคอน SVG (ใช้ทั้งใน HTML และวาดลง canvas)
+js/avatar.js           ตัวละครพิกเซล (ประกอบจากชิ้นส่วน)
+js/city.js             เมืองพิกเซล 5 เขต + พลเมืองทุกคน
+js/share.js            การ์ดแชร์ลงสตอรี่
 js/wheel.js            วงล้อ + เรียก API รางวัล
 js/app.js              ลำดับหน้าจอ, คิดคะแนน, Staff Console
-supabase/nextopia.sql  ตาราง + ฟังก์ชันสุ่มรางวัลบนเซิร์ฟเวอร์
+supabase/nextopia.sql            ตาราง + ฟังก์ชันสุ่มรางวัล / Staff
+supabase/nextopia_residents.sql  ตัวละคร (พลเมือง) ในเมือง
+vercel.json                      proxy /api/rpc → Supabase
 ```

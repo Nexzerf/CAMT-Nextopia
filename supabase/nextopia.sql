@@ -11,7 +11,7 @@ revoke all on schema nextopia from public, anon, authenticated;
 create table if not exists nextopia.prizes (
   id      text primary key,
   name    text not null,
-  emoji   text not null default '🎁',
+  emoji   text not null default 'gift', -- ชื่อไอคอน
   stock   int  not null check (stock >= 0),
   given   int  not null default 0 check (given >= 0),
   chance  numeric(6,3) not null check (chance >= 0 and chance <= 100), -- % ต่อการหมุน
@@ -51,10 +51,10 @@ alter table nextopia.pin_failures enable row level security;
 revoke all on all tables in schema nextopia from public, anon, authenticated;
 
 insert into nextopia.prizes (id, name, emoji, stock, chance, sort) values
-  ('clicker1', 'คลิกเกอร์ 1 ปุ่ม', '🖲️', 5, 1.00, 1),
-  ('clicker3', 'คลิกเกอร์ 3 ปุ่ม', '🎛️', 5, 0.80, 2),
-  ('bag',      'กระเป๋า CAMT',    '🎒', 2, 0.25, 3),
-  ('mug',      'แก้วน้ำ CAMT',    '🥤', 2, 0.25, 4)
+  ('clicker1', 'คลิกเกอร์ 1 ปุ่ม', 'clicker1', 5, 1.00, 1),
+  ('clicker3', 'คลิกเกอร์ 3 ปุ่ม', 'clicker3', 5, 0.80, 2),
+  ('bag',      'กระเป๋า CAMT',    'bag', 2, 0.25, 3),
+  ('mug',      'แก้วน้ำ CAMT',    'mug', 2, 0.25, 4)
 on conflict (id) do nothing;
 
 -- PIN สตาฟถูกตั้งแยกตอนติดตั้ง (เก็บเป็น bcrypt hash) ไม่ใส่ไว้ในไฟล์นี้
@@ -194,9 +194,12 @@ begin
     -- ล้างยอดแจกและประวัติทั้งหมด (ใช้ก่อนเริ่มงานจริง)
     delete from nextopia.spins where true;
     update nextopia.prizes set given = 0 where true;
+    delete from nextopia.residents where true;
   elsif p_action = 'claim' then
     update nextopia.spins set claimed_at = coalesce(claimed_at, now())
     where code = upper(trim(p_payload ->> 'code'));
+  elsif p_action = 'hide_resident' then
+    update nextopia.residents set hidden = true where id = (p_payload ->> 'id')::uuid;
   elsif p_action = 'set_pin' then
     if length(coalesce(p_payload ->> 'new_pin', '')) < 4 then raise exception 'pin too short'; end if;
     update nextopia.settings set value = extensions.crypt(p_payload ->> 'new_pin', extensions.gen_salt('bf'))
@@ -212,6 +215,10 @@ begin
       from nextopia.prizes),
     'total_spins', (select count(*) from nextopia.spins),
     'total_wins',  (select count(*) from nextopia.spins where prize_id is not null),
+    'residents_total', (select count(*) from nextopia.residents where not hidden),
+    'residents', (select coalesce(json_agg(r), '[]'::json) from (
+      select id, nickname, major, updated_at from nextopia.residents where not hidden
+      order by updated_at desc limit 100) r),
     'by_major', (select coalesce(json_object_agg(major, n), '{}'::json)
       from (select coalesce(major, '-') as major, count(*) n from nextopia.spins group by 1) t),
     'recent', (select coalesce(json_agg(r), '[]'::json) from (

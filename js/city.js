@@ -1,361 +1,409 @@
 /* ==========================================================
-   CAMT NEXTOPIA — ฉากเมืองอนาคต (procedural canvas)
-   ตึกสูงหลายชั้นความลึก, หอคอย 5 เขต, รถบิน, โฮโลแกรม
+   CAMT NEXTOPIA — เมืองพิกเซล
+   5 เขต = 5 สาขา, พลเมืองทุกคนเดินอยู่ในเขตของตัวเอง
+   โหมด ambient: เลื่อนช้า ๆ เป็นฉากหลัง
+   โหมด explore: ลากเพื่อดูเมือง แตะตัวละครเพื่อดูชื่อ
    ========================================================== */
-(function () {
+const City = (function () {
   const canvas = document.getElementById("city");
   const ctx = canvas.getContext("2d");
-  let W = 0, H = 0, DPR = 1;
-  let layers = [];
-  let stars = [];
-  let cars = [];
-  let megaTowers = [];
-  let t = 0;
-  let running = true;
-  let highlight = null; // รหัสสาขาที่จะเน้นหอคอย
-  let seed = 20260;
 
-  function rand() {
-    // deterministic เพื่อให้เมืองหน้าตาเหมือนเดิมทุกครั้งที่ resize
-    seed = (seed * 16807) % 2147483647;
-    return (seed - 1) / 2147483646;
-  }
+  const PAPER = "#F4F1EC", INK = "#161616", ORANGE = "#F15A24";
+  const FAR = "#E4DDD1", MID = "#CEC5B6", NEAR = "#2A2622", NEAR2 = "#3A3530";
+  const DW = 260; // ความกว้างต่อเขต
+  const ORDER = ["SE", "MMIT", "ANI", "DG", "DII"];
+  const WW = DW * ORDER.length;
 
-  const TOWER_DEFS = [
-    { code: "SE", x: 0.12, h: 0.62, w: 0.055, color: "#00e5ff", shape: "spire" },
-    { code: "ANI", x: 0.31, h: 0.5, w: 0.08, color: "#ff3df2", shape: "dome" },
-    { code: "MMIT", x: 0.5, h: 0.74, w: 0.07, color: "#ffb800", shape: "needle" },
-    { code: "DG", x: 0.69, h: 0.52, w: 0.085, color: "#39ff88", shape: "arena" },
-    { code: "DII", x: 0.88, h: 0.6, w: 0.065, color: "#ff5a1f", shape: "forge" },
-  ];
+  let dpr = 1, scale = 3, VW = 0, VH = 0, GY = 0;
+  let camX = 0, camTarget = null, mode = "ambient";
+  let t = 0, last = performance.now(), running = true;
+  let residents = [];
+  let me = null; // {id,nickname,major,look}
+  let tagUntil = new Map();
+  let onSelect = null;
+  let farLine = [], midLine = [], clouds = [], pods = [];
+  let seed = 7;
 
+  function rnd() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+  function R(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
+  function wrap(x) { return ((x % WW) + WW) % WW; }
+
+  /* ---------- สร้างฉาก ---------- */
   function build() {
-    seed = 20260;
-    DPR = Math.min(window.devicePixelRatio || 1, 1.5);
-    W = window.innerWidth;
-    H = window.innerHeight;
-    canvas.width = Math.floor(W * DPR);
-    canvas.height = Math.floor(H * DPR);
-    canvas.style.width = W + "px";
-    canvas.style.height = H + "px";
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cw = Math.floor(window.innerWidth * dpr), ch = Math.floor(window.innerHeight * dpr);
+    canvas.width = cw; canvas.height = ch;
+    canvas.style.width = window.innerWidth + "px";
+    canvas.style.height = window.innerHeight + "px";
+    layout();
 
-    stars = [];
-    const nStars = Math.floor((W * H) / 6000);
-    for (let i = 0; i < nStars; i++) {
-      stars.push({ x: rand() * W, y: rand() * H * 0.6, r: rand() * 1.2 + 0.2, p: rand() * Math.PI * 2 });
-    }
-
-    // 3 ชั้นความลึกของตึก
-    const defs = [
-      { depth: 0.25, minH: 0.18, maxH: 0.45, minW: 18, maxW: 46, col: [22, 18, 52], win: 0.15, speed: 2 },
-      { depth: 0.55, minH: 0.12, maxH: 0.38, minW: 26, maxW: 64, col: [16, 12, 38], win: 0.22, speed: 5 },
-      { depth: 1.0, minH: 0.06, maxH: 0.26, minW: 34, maxW: 90, col: [9, 7, 22], win: 0.3, speed: 10 },
-    ];
-    layers = defs.map((d) => {
-      const bs = [];
-      let x = -40;
-      while (x < W + 200) {
-        const w = d.minW + rand() * (d.maxW - d.minW);
-        const h = H * (d.minH + rand() * (d.maxH - d.minH));
-        const b = {
-          x, w, h,
-          antenna: rand() < 0.3 ? 10 + rand() * 40 : 0,
-          stripe: rand() < 0.35 ? ["#00e5ff", "#ff3df2", "#ff6a00", "#39ff88"][Math.floor(rand() * 4)] : null,
-          tiers: rand() < 0.4 ? 1 + Math.floor(rand() * 2) : 0,
-          windows: [],
-        };
-        const cols = Math.max(2, Math.floor(w / 9));
-        const rows = Math.floor(h / 12);
-        for (let r = 0; r < rows; r++) {
-          for (let c = 0; c < cols; c++) {
-            if (rand() < d.win) {
-              b.windows.push({
-                x: 4 + c * ((w - 8) / cols),
-                y: 8 + r * 12,
-                warm: rand() < 0.55,
-                flick: rand() < 0.05,
-              });
-            }
-          }
-        }
-        bs.push(b);
-        x += w + rand() * 14;
-      }
-      return { ...d, buildings: bs, width: x };
-    });
-
-    megaTowers = TOWER_DEFS.map((d) => ({
-      ...d,
-      px: d.x * W,
-      ph: d.h * H * (W < 700 ? 0.85 : 1),
-      pw: Math.max(34, d.w * W * (W < 700 ? 1.3 : 1)),
-    }));
-
-    cars = [];
-    const nCars = W < 700 ? 10 : 22;
-    for (let i = 0; i < nCars; i++) cars.push(newCar(true));
+    seed = 7;
+    farLine = []; midLine = [];
+    for (let x = 0; x < WW; ) { const w = 14 + rnd() * 22; farLine.push({ x, w, h: 40 + rnd() * 70 }); x += w + 2; }
+    for (let x = 0; x < WW; ) { const w = 16 + rnd() * 26; midLine.push({ x, w, h: 24 + rnd() * 60, win: rnd() < 0.6 }); x += w + 4 + rnd() * 10; }
+    clouds = Array.from({ length: 6 }, () => ({ x: rnd() * WW, y: 12 + rnd() * 40, w: 18 + rnd() * 26 }));
+    pods = Array.from({ length: 7 }, () => ({ x: rnd() * WW, y: 30 + rnd() * 50, v: (8 + rnd() * 18) * (rnd() < 0.5 ? -1 : 1) }));
   }
 
-  function newCar(anywhere) {
-    const dir = rand() < 0.5 ? 1 : -1;
-    const lane = 0.15 + rand() * 0.5;
+  /* ตำแหน่งพื้นดิน: ให้เมืองอยู่เหนือแผงเมนู/ปุ่มเสมอ */
+  function layout() {
+    const cw = canvas.width, ch = canvas.height;
+    const portrait = window.innerHeight > window.innerWidth;
+    // ฉากหลัง: ซูมออกให้เห็นหลายตึก / โหมดเดินเมือง: ซูมเข้าให้เห็นตัวละครชัด
+    const minW = mode === "explore" ? 210 : 280;
+    scale = Math.max(2, Math.min(Math.floor(cw / minW), Math.floor(ch / (mode === "explore" ? 200 : 260))));
+    VW = Math.ceil(cw / scale); VH = Math.ceil(ch / scale);
+    const fromBottomCss = mode === "explore" ? 250 : portrait ? window.innerHeight * 0.5 : 70;
+    GY = Math.max(150, Math.round(VH - (fromBottomCss * dpr) / scale));
+  }
+  function uiPx(css) { return Math.max(6, Math.round((css * dpr) / scale)); }
+
+  /* ---------- ตึกประจำเขต ---------- */
+  function sign(cx, y, text, color, ink) {
+    ctx.font = "8px Silkscreen, monospace";
+    const w = Math.ceil(ctx.measureText(text).width) + 8;
+    R(cx - w / 2, y, w, 11, color);
+    R(cx - w / 2, y + 11, w, 1, INK);
+    ctx.fillStyle = ink;
+    ctx.textBaseline = "top";
+    ctx.textAlign = "center";
+    ctx.fillText(text, Math.round(cx), y + 2);
+  }
+
+  function windows(x, y, w, h, color, step = 4, on = 0.55, salt = 1) {
+    for (let yy = y + 3; yy < y + h - 3; yy += step) {
+      for (let xx = x + 3; xx < x + w - 3; xx += 4) {
+        const v = Math.sin(xx * 12.9898 + yy * 78.233 + salt) * 43758.5453;
+        if (v - Math.floor(v) < on) R(xx, yy, 2, 2, color);
+      }
+    }
+  }
+
+  function towers(ox) {
+    const g = GY;
+    const blink = Math.floor(t * 2) % 2 === 0;
+    ORDER.forEach((code, i) => {
+      const m = MAJORS[code];
+      const cx = ox + i * DW + DW / 2;
+      if (cx < -120 || cx > VW + 120) return;
+      // ตึกเล็กข้าง ๆ
+      R(cx - 100, g - 46, 30, 46, NEAR2); windows(cx - 100, g - 46, 30, 46, "#5A534B", 5, 0.5, i);
+      R(cx + 70, g - 34, 34, 34, NEAR2); windows(cx + 70, g - 34, 34, 34, "#5A534B", 5, 0.5, i + 9);
+
+      switch (code) {
+        case "SE": { // CODE SPIRE
+          R(cx - 14, g - 120, 28, 120, NEAR);
+          R(cx - 10, g - 140, 20, 20, NEAR);
+          R(cx - 5, g - 158, 10, 18, NEAR);
+          R(cx - 1, g - 172, 2, 14, NEAR);
+          if (blink) R(cx - 2, g - 175, 4, 3, ORANGE);
+          for (let y = g - 116; y < g - 4; y += 6) { R(cx - 10, y, 3, 3, m.color); R(cx + 7, y, 3, 3, m.color); }
+          windows(cx - 4, g - 118, 8, 112, PAPER, 6, 0.5, 3);
+          sign(cx, g - 96, "CODE SPIRE", m.color, "#fff");
+          break;
+        }
+        case "MMIT": { // NEXUS EXCHANGE — ตึกขั้นบันได
+          R(cx - 34, g - 70, 68, 70, NEAR);
+          R(cx - 26, g - 110, 52, 40, NEAR);
+          R(cx - 16, g - 138, 32, 28, NEAR);
+          R(cx - 34, g - 72, 68, 2, m.color); R(cx - 26, g - 112, 52, 2, m.color); R(cx - 16, g - 140, 32, 2, m.color);
+          windows(cx - 32, g - 68, 64, 66, "#E9D7A6", 5, 0.45, 11);
+          windows(cx - 24, g - 108, 48, 36, "#E9D7A6", 5, 0.45, 12);
+          // กราฟบนป้าย
+          R(cx - 12, g - 134, 24, 18, PAPER);
+          [4, 8, 6, 12].forEach((h, k) => R(cx - 9 + k * 5, g - 118 - h, 3, h, m.color));
+          sign(cx, g - 60, "NEXUS EXCHANGE", m.color, INK);
+          break;
+        }
+        case "ANI": { // PRISM STUDIO — โดม + จอ
+          R(cx - 30, g - 56, 60, 56, NEAR);
+          for (let r = 0; r < 26; r++) {
+            const w = Math.round(Math.sqrt(26 * 26 - r * r));
+            R(cx - w, g - 56 - r, w * 2, 1, r % 6 < 3 ? m.color : Avatar.shade(m.color, 0.8));
+          }
+          R(cx - 22, g - 46, 44, 26, INK);
+          const hue = Math.floor(t * 1.5) % 3;
+          R(cx - 20, g - 44, 40, 22, [m.color, ORANGE, "#2F62D9"][hue]);
+          R(cx - 6, g - 38, 4, 4, PAPER); R(cx + 2, g - 38, 4, 4, PAPER);
+          sign(cx, g - 16, "PRISM STUDIO", m.color, "#fff");
+          break;
+        }
+        case "DG": { // ARCADE ARENA — อารีน่า + จอใหญ่
+          R(cx - 44, g - 40, 88, 40, NEAR);
+          R(cx - 40, g - 44, 80, 4, NEAR);
+          R(cx - 30, g - 92, 60, 44, INK);
+          R(cx - 27, g - 89, 54, 38, m.color);
+          // จอยเกมพิกเซล
+          R(cx - 14, g - 76, 28, 12, PAPER); R(cx - 10, g - 74, 2, 8, INK); R(cx - 13, g - 71, 8, 2, INK);
+          R(cx + 6, g - 73, 2, 2, ORANGE); R(cx + 10, g - 70, 2, 2, ORANGE);
+          R(cx - 2, g - 48, 4, 8, NEAR);
+          for (let k = 0; k < 10; k++) R(cx - 40 + k * 9, g - 36, 4, 2, (k + Math.floor(t * 4)) % 3 === 0 ? m.color : "#5A534B");
+          sign(cx, g - 28, "ARCADE ARENA", m.color, "#fff");
+          break;
+        }
+        case "DII": { // SYNTH FORGE — โรงงาน + ปล่อง + โดรน
+          R(cx - 40, g - 48, 80, 48, NEAR);
+          for (let k = 0; k < 4; k++) { R(cx - 40 + k * 20, g - 58, 20, 10, NEAR); R(cx - 40 + k * 20, g - 58, 10, 2, m.color); }
+          R(cx + 18, g - 100, 10, 52, NEAR); R(cx + 18, g - 100, 10, 3, m.color);
+          R(cx - 28, g - 86, 8, 38, NEAR); R(cx - 28, g - 86, 8, 3, m.color);
+          // ควัน (พิกเซล)
+          for (let k = 0; k < 3; k++) {
+            const yy = g - 106 - ((t * 10 + k * 8) % 24);
+            R(cx + 20 + Math.sin(t + k) * 2, yy, 6, 4, "#D9D2C6");
+          }
+          windows(cx - 38, g - 46, 76, 44, "#C9B8F0", 6, 0.5, 31);
+          // โดรน
+          const dx = cx + Math.sin(t * 0.8) * 50, dy = g - 130 + Math.sin(t * 2) * 6;
+          R(dx - 5, dy, 10, 2, INK); R(dx - 7, dy - 2, 4, 1, INK); R(dx + 3, dy - 2, 4, 1, INK); R(dx - 1, dy + 2, 2, 2, ORANGE);
+          sign(cx, g - 40, "SYNTH FORGE", m.color, "#fff");
+          break;
+        }
+      }
+    });
+  }
+
+  /* ---------- พลเมือง ---------- */
+  function lookOf(r) { return { hair: r.hair | 0, hair_color: r.hair_color | 0, skin: r.skin | 0, acc: r.acc | 0, top: r.top | 0 }; }
+
+  function placeResident(r, prev) {
+    const d = Math.max(0, ORDER.indexOf(r.major));
+    const lo = d * DW + 18, hi = d * DW + DW - 18;
+    const x = prev && prev.major === r.major ? prev.x : lo + Math.random() * (hi - lo);
     return {
-      x: anywhere ? rand() * W : dir > 0 ? -60 : W + 60,
-      y: H * lane,
-      v: (40 + rand() * 120) * dir,
-      c: ["#00e5ff", "#ff3df2", "#ffb800", "#ffffff"][Math.floor(rand() * 4)],
-      len: 20 + rand() * 50,
+      ...r, look: lookOf(r), lo, hi, x,
+      lane: prev && prev.major === r.major ? prev.lane : Math.random(),
+      tx: lo + Math.random() * (hi - lo),
+      v: 6 + Math.random() * 10,
+      wait: Math.random() * 3,
+      phase: Math.random() * 10,
     };
   }
 
-  function drawSky() {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#05010f");
-    g.addColorStop(0.45, "#140630");
-    g.addColorStop(0.75, "#3a0a3f");
-    g.addColorStop(1, "#ff5a1f");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-
-    // ดวงอาทิตย์นีออน
-    const sx = W * 0.5, sy = H * 0.78, sr = Math.min(W, H) * 0.28;
-    const sg = ctx.createLinearGradient(0, sy - sr, 0, sy + sr);
-    sg.addColorStop(0, "rgba(255,184,0,0.85)");
-    sg.addColorStop(0.6, "rgba(255,61,140,0.6)");
-    sg.addColorStop(1, "rgba(255,61,140,0)");
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(sx, sy, sr, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.fillStyle = sg;
-    ctx.fillRect(sx - sr, sy - sr, sr * 2, sr * 2);
-    // แถบตัดแบบ retro-future
-    ctx.globalCompositeOperation = "destination-out";
-    for (let i = 0; i < 9; i++) {
-      const yy = sy - sr * 0.1 + i * (sr / 7);
-      ctx.fillRect(sx - sr, yy, sr * 2, 2 + i * 1.3);
-    }
-    ctx.restore();
-
-    for (const s of stars) {
-      const a = 0.4 + 0.6 * Math.abs(Math.sin(t * 0.8 + s.p));
-      ctx.fillStyle = `rgba(255,255,255,${a * 0.8})`;
-      ctx.fillRect(s.x, s.y, s.r, s.r);
-    }
+  function setResidents(list) {
+    const old = new Map(residents.map((r) => [r.id, r]));
+    residents = (list || []).map((r) => placeResident(r, old.get(r.id)));
+    if (me) attachMe();
   }
 
-  function drawLayer(L) {
-    const off = (t * L.speed) % L.width;
-    const baseY = H;
-    for (let pass = 0; pass < 2; pass++) {
-      const shift = -off + pass * L.width;
-      for (const b of L.buildings) {
-        const x = b.x + shift;
-        if (x > W + 10 || x + b.w < -10) continue;
-        const y = baseY - b.h;
-        ctx.fillStyle = `rgb(${L.col[0]},${L.col[1]},${L.col[2]})`;
-        ctx.fillRect(x, y, b.w, b.h);
-        if (b.tiers) {
-          for (let i = 1; i <= b.tiers; i++) {
-            const tw = b.w * (1 - i * 0.25);
-            ctx.fillRect(x + (b.w - tw) / 2, y - i * 14, tw, 14);
-          }
-        }
-        if (b.antenna) {
-          ctx.fillRect(x + b.w / 2 - 1, y - b.antenna - b.tiers * 14, 2, b.antenna);
-          const blink = Math.sin(t * 3 + b.x) > 0.6;
-          if (blink) {
-            ctx.fillStyle = "#ff2d55";
-            ctx.fillRect(x + b.w / 2 - 2, y - b.antenna - b.tiers * 14 - 2, 4, 4);
-          }
-        }
-        if (b.stripe) {
-          ctx.fillStyle = b.stripe;
-          ctx.globalAlpha = 0.55 * L.depth + 0.2;
-          ctx.fillRect(x, y, 2, b.h);
-          ctx.globalAlpha = 1;
-        }
-        for (const w of b.windows) {
-          if (w.flick && Math.sin(t * 7 + w.x * 13) > 0.3) continue;
-          ctx.fillStyle = w.warm ? "rgba(255,190,110,0.75)" : "rgba(120,220,255,0.65)";
-          ctx.fillRect(x + w.x, y + w.y, 3, 4);
-        }
+  function attachMe() {
+    if (!me) return;
+    let r = residents.find((x) => x.id === me.id);
+    const data = { id: me.id || "me", nickname: me.nickname, major: me.major, ...me.look };
+    if (!r) { r = placeResident(data); residents.push(r); }
+    else Object.assign(r, data, { look: lookOf(data) });
+    r.isMe = true;
+  }
+
+  function setMe(obj) { me = obj; attachMe(); }
+
+  function updateResidents(dt) {
+    for (const r of residents) {
+      if (r.wait > 0) { r.wait -= dt; continue; }
+      const dir = Math.sign(r.tx - r.x);
+      r.x += dir * r.v * dt;
+      if (Math.abs(r.tx - r.x) < 1) {
+        r.wait = 1 + Math.random() * 4;
+        r.tx = r.lo + Math.random() * (r.hi - r.lo);
       }
     }
   }
 
-  function drawMegaTower(m) {
-    const isHi = highlight === m.code;
-    const x = m.px, w = m.pw, h = m.ph;
-    const top = H - h;
-    const pulse = 0.5 + 0.5 * Math.sin(t * 2 + m.px);
+  function drawResidents(ox) {
+    const list = [];
+    for (const r of residents) {
+      let sx = r.x + ox;
+      if (sx < -20) sx += WW; else if (sx > VW + 20) sx -= WW;
+      if (sx < -20 || sx > VW + 20) continue;
+      list.push({ r, sx, sy: GY + 8 + r.lane * 22 });
+    }
+    list.sort((a, b) => a.sy - b.sy);
+    ctx.imageSmoothingEnabled = false;
+    for (const { r, sx, sy } of list) {
+      const moving = r.wait <= 0;
+      const frame = moving ? (Math.floor(t * 6 + r.phase) % 2 ? 1 : 2) : 0;
+      const spr = Avatar.sprite(r.look, frame, MAJORS[r.major] ? MAJORS[r.major].color : undefined);
+      const flip = r.tx < r.x;
+      // เงา
+      R(sx - 6, sy - 1, 12, 2, "rgba(22,22,22,0.18)");
+      ctx.save();
+      ctx.translate(Math.round(sx), Math.round(sy - spr.height));
+      if (flip) { ctx.scale(-1, 1); ctx.drawImage(spr, -Math.ceil(spr.width / 2), 0); }
+      else ctx.drawImage(spr, -Math.floor(spr.width / 2), 0);
+      ctx.restore();
+      r._sx = sx; r._sy = sy;
+    }
+    // ป้ายชื่อ (วาดทีหลังให้อยู่บนสุด)
+    const now = performance.now();
+    for (const { r, sx, sy } of list) {
+      const show = r.isMe || (tagUntil.get(r.id) || 0) > now;
+      if (!show) continue;
+      nameTag(sx, sy - 27, r.nickname, r.isMe);
+    }
+  }
 
-    ctx.save();
-    // กลีบแสงขึ้นฟ้า
-    const beamA = isHi ? 0.35 : highlight ? 0.04 : 0.1;
-    const bg = ctx.createLinearGradient(0, 0, 0, top);
-    bg.addColorStop(0, "rgba(0,0,0,0)");
-    bg.addColorStop(1, hexA(m.color, beamA + pulse * 0.05));
+  function nameTag(x, y, text, isMe) {
+    const fs = uiPx(12);
+    ctx.font = `600 ${fs}px 'IBM Plex Sans Thai', sans-serif`;
+    const w = Math.ceil(ctx.measureText(text).width) + fs;
+    const h = Math.round(fs * 1.5);
+    const bg = isMe ? ORANGE : INK;
     ctx.fillStyle = bg;
+    roundRect(x - w / 2, y - h, w, h, Math.round(h / 2));
+    ctx.fill();
+    R(x - 1, y, 3, 2, bg);
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, x, y - h / 2 + 0.5);
+  }
+
+  function roundRect(x, y, w, h, r) {
     ctx.beginPath();
-    ctx.moveTo(x - 4, top);
-    ctx.lineTo(x + 4, top);
-    ctx.lineTo(x + (isHi ? 60 : 25), 0);
-    ctx.lineTo(x - (isHi ? 60 : 25), 0);
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
     ctx.closePath();
-    ctx.fill();
-
-    ctx.shadowColor = m.color;
-    ctx.shadowBlur = isHi ? 30 : 12;
-    ctx.fillStyle = "#0b0820";
-    ctx.strokeStyle = hexA(m.color, highlight && !isHi ? 0.35 : 0.95);
-    ctx.lineWidth = isHi ? 2.5 : 1.5;
-
-    ctx.beginPath();
-    if (m.shape === "spire") {
-      ctx.moveTo(x - w / 2, H);
-      ctx.lineTo(x - w / 2.6, top + h * 0.25);
-      ctx.lineTo(x - w / 6, top + h * 0.08);
-      ctx.lineTo(x, top - h * 0.12);
-      ctx.lineTo(x + w / 6, top + h * 0.08);
-      ctx.lineTo(x + w / 2.6, top + h * 0.25);
-      ctx.lineTo(x + w / 2, H);
-    } else if (m.shape === "dome") {
-      ctx.moveTo(x - w / 2, H);
-      ctx.lineTo(x - w / 2, top + w / 2);
-      ctx.arc(x, top + w / 2, w / 2, Math.PI, 0);
-      ctx.lineTo(x + w / 2, H);
-    } else if (m.shape === "needle") {
-      ctx.moveTo(x - w / 2, H);
-      ctx.lineTo(x - w / 3, top + h * 0.3);
-      ctx.lineTo(x - w / 2.2, top + h * 0.22);
-      ctx.lineTo(x - w / 5, top);
-      ctx.lineTo(x - 2, top - h * 0.18);
-      ctx.lineTo(x + 2, top - h * 0.18);
-      ctx.lineTo(x + w / 5, top);
-      ctx.lineTo(x + w / 2.2, top + h * 0.22);
-      ctx.lineTo(x + w / 3, top + h * 0.3);
-      ctx.lineTo(x + w / 2, H);
-    } else if (m.shape === "arena") {
-      ctx.moveTo(x - w / 2, H);
-      ctx.lineTo(x - w / 2, top + h * 0.35);
-      ctx.quadraticCurveTo(x - w / 2, top, x, top);
-      ctx.quadraticCurveTo(x + w / 2, top, x + w / 2, top + h * 0.35);
-      ctx.lineTo(x + w / 2, H);
-    } else {
-      // forge — ตึกขั้นบันได + ปล่องพลังงาน
-      ctx.moveTo(x - w / 2, H);
-      ctx.lineTo(x - w / 2, top + h * 0.3);
-      ctx.lineTo(x - w / 4, top + h * 0.3);
-      ctx.lineTo(x - w / 4, top + h * 0.05);
-      ctx.lineTo(x - w / 10, top + h * 0.05);
-      ctx.lineTo(x - w / 10, top - h * 0.08);
-      ctx.lineTo(x + w / 10, top - h * 0.08);
-      ctx.lineTo(x + w / 10, top + h * 0.05);
-      ctx.lineTo(x + w / 4, top + h * 0.05);
-      ctx.lineTo(x + w / 4, top + h * 0.2);
-      ctx.lineTo(x + w / 2, top + h * 0.2);
-      ctx.lineTo(x + w / 2, H);
-    }
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // เส้นแสงแนวนอนวิ่งขึ้น
-    ctx.fillStyle = hexA(m.color, 0.5);
-    const rows = 14;
-    for (let i = 0; i < rows; i++) {
-      const yy = H - ((i * h) / rows + ((t * 30) % (h / rows)));
-      if (yy < top + 10) continue;
-      ctx.globalAlpha = 0.25 + 0.5 * ((i % 3) / 3);
-      ctx.fillRect(x - w * 0.3, yy, w * 0.6, 1.5);
-    }
-    ctx.globalAlpha = 1;
-
-    // วงแหวนโฮโลแกรม
-    const ry = top + h * 0.18;
-    ctx.strokeStyle = hexA(m.color, isHi ? 0.9 : 0.45);
-    ctx.lineWidth = 1.2;
-    for (let i = 0; i < (isHi ? 3 : 1); i++) {
-      ctx.beginPath();
-      ctx.ellipse(x, ry - i * 14 + Math.sin(t * 2 + i) * 3, w * (0.9 + i * 0.25), w * 0.18, 0, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-
-    // ไฟยอดตึก
-    ctx.fillStyle = m.color;
-    ctx.shadowColor = m.color;
-    ctx.shadowBlur = 20;
-    ctx.beginPath();
-    ctx.arc(x, top - h * 0.12 - 4, 3 + pulse * 2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
   }
 
-  function drawCars(dt) {
-    for (let i = 0; i < cars.length; i++) {
-      const c = cars[i];
-      c.x += c.v * dt;
-      if (c.x < -100 || c.x > W + 100) cars[i] = newCar(false);
-      const g = ctx.createLinearGradient(c.x, 0, c.x - Math.sign(c.v) * c.len, 0);
-      g.addColorStop(0, c.c);
-      g.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.fillStyle = g;
-      ctx.fillRect(Math.min(c.x, c.x - Math.sign(c.v) * c.len), c.y, c.len, 2);
-    }
-  }
-
-  function drawGround() {
-    const gy = H - 2;
-    ctx.fillStyle = "#05030c";
-    ctx.fillRect(0, gy, W, 2);
-    // ไฮเปอร์ลูปเรืองแสงด้านล่าง
-    const g = ctx.createLinearGradient(0, H - 40, 0, H);
-    g.addColorStop(0, "rgba(255,90,31,0)");
-    g.addColorStop(1, "rgba(255,90,31,0.35)");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, H - 40, W, 40);
-  }
-
-  function hexA(hex, a) {
-    const n = parseInt(hex.slice(1), 16);
-    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
-  }
-
-  let last = performance.now();
+  /* ---------- เฟรม ---------- */
   function frame(now) {
     if (!running) return;
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     t += dt;
-    drawSky();
-    drawLayer(layers[0]);
-    drawCars(dt);
-    drawLayer(layers[1]);
-    for (const m of megaTowers) drawMegaTower(m);
-    drawLayer(layers[2]);
-    drawGround();
+
+    if (camTarget != null) {
+      const diff = ((camTarget - camX + WW / 2) % WW + WW) % WW - WW / 2;
+      camX = wrap(camX + diff * Math.min(1, dt * 4));
+      if (Math.abs(diff) < 0.5) camTarget = null;
+    } else if (mode === "ambient" && !dragging) {
+      camX = wrap(camX + dt * 10);
+    }
+
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+
+    // ท้องฟ้า + พระอาทิตย์ (สีพื้น ไม่มีไล่สี)
+    R(0, 0, VW, VH, PAPER);
+    const sr = Math.min(46, VH * 0.22), sx = VW * 0.72, sy = GY - 70;
+    ctx.fillStyle = ORANGE;
+    for (let y = -sr; y <= sr; y++) {
+      const w = Math.round(Math.sqrt(sr * sr - y * y));
+      if (y > sr * 0.15 && (Math.floor(y) % 6) < 2) continue; // เส้นตัดสไตล์โปสเตอร์
+      ctx.fillRect(Math.round(sx - w), Math.round(sy + y), w * 2, 1);
+    }
+    for (const c of clouds) {
+      const x = wrap(c.x - camX * 0.15 + t * 2) - 40;
+      R(x, c.y, c.w, 4, "#FFFFFF"); R(x + 4, c.y - 3, c.w - 10, 3, "#FFFFFF");
+    }
+
+    // แนวตึกไกล / กลาง (parallax)
+    const farOff = -camX * 0.35, midOff = -camX * 0.65;
+    for (const pass of [0, 1, 2]) {
+      for (const b of farLine) { const x = b.x + farOff + (pass - 1) * WW; if (x > -40 && x < VW + 40) R(x, GY - b.h - 30, b.w, b.h + 30, FAR); }
+    }
+    for (const p of pods) {
+      p.x = wrap(p.x + p.v * dt);
+      const x = wrap(p.x - camX * 0.8);
+      R(x, p.y, 7, 2, INK); R(p.v > 0 ? x + 6 : x - 1, p.y, 1, 1, ORANGE);
+    }
+    for (const pass of [0, 1, 2]) {
+      for (const b of midLine) {
+        const x = b.x + midOff + (pass - 1) * WW;
+        if (x < -50 || x > VW + 50) continue;
+        R(x, GY - b.h - 10, b.w, b.h + 10, MID);
+        if (b.win) windows(x, GY - b.h - 10, b.w, b.h, "#E9E3D8", 5, 0.4, b.x);
+      }
+    }
+
+    // รถไฟลอยฟ้า
+    const railY = GY - 22;
+    R(0, railY, VW, 2, NEAR);
+    for (let x = ((-camX) % 40 + 40) % 40 - 40; x < VW; x += 40) R(x, railY + 2, 2, 20, NEAR2);
+    const trainX = wrap(t * 60 - camX) - 80;
+    for (let k = 0; k < 3; k++) { R(trainX + k * 24, railY - 7, 22, 7, PAPER); R(trainX + k * 24, railY - 4, 22, 1, ORANGE); R(trainX + k * 24, railY - 7, 22, 1, INK); }
+
+    // ตึกประจำเขต
+    for (const pass of [0, 1, 2]) towers(-camX + (pass - 1) * WW);
+
+    // พื้นลาน
+    R(0, GY, VW, VH - GY, "#E2DACC");
+    R(0, GY, VW, 2, INK);
+    for (let x = ((-camX) % 16 + 16) % 16 - 16; x < VW; x += 16) R(x, GY + 2, 1, VH - GY, "#D6CDBD");
+    // เส้นแบ่งเขต + ป้ายพื้น
+    for (let i = 0; i < ORDER.length; i++) {
+      for (const pass of [0, 1, 2]) {
+        const x = i * DW - camX + (pass - 1) * WW;
+        if (x > -2 && x < VW + 2) R(x, GY + 2, 2, VH - GY, MAJORS[ORDER[i]].color);
+      }
+    }
+
+    updateResidents(dt);
+    for (const pass of [0]) drawResidents(-camX + pass);
+
     requestAnimationFrame(frame);
   }
 
-  window.addEventListener("resize", () => {
-    clearTimeout(window.__cityResize);
-    window.__cityResize = setTimeout(build, 150);
+  /* ---------- การโต้ตอบ ---------- */
+  let dragging = false, dragX = 0, dragCam = 0, moved = 0;
+  canvas.addEventListener("pointerdown", (e) => {
+    if (mode !== "explore") return;
+    dragging = true; moved = 0; dragX = e.clientX; dragCam = camX; camTarget = null;
+    canvas.setPointerCapture(e.pointerId);
   });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const dx = ((e.clientX - dragX) * dpr) / scale;
+    moved = Math.max(moved, Math.abs(dx));
+    camX = wrap(dragCam - dx);
+  });
+  canvas.addEventListener("pointerup", (e) => {
+    if (!dragging) return;
+    dragging = false;
+    if (moved < 4) tap(e);
+  });
+
+  function tap(e) {
+    const rect = canvas.getBoundingClientRect();
+    const lx = ((e.clientX - rect.left) * dpr) / scale;
+    const ly = ((e.clientY - rect.top) * dpr) / scale;
+    let best = null, bd = 18;
+    for (const r of residents) {
+      if (r._sx == null) continue;
+      const d = Math.hypot(r._sx - lx, r._sy - 12 - ly);
+      if (d < bd) { bd = d; best = r; }
+    }
+    if (best) {
+      tagUntil.set(best.id, performance.now() + 4000);
+      onSelect && onSelect(best);
+    }
+  }
+
+  function focus(code) {
+    const i = Math.max(0, ORDER.indexOf(code));
+    camTarget = wrap(i * DW + DW / 2 - VW / 2);
+  }
+
+  function focusMe() {
+    const r = residents.find((x) => x.isMe);
+    if (r) camTarget = wrap(r.x - VW / 2);
+  }
+
+  window.addEventListener("resize", () => { clearTimeout(window.__cr); window.__cr = setTimeout(build, 150); });
   document.addEventListener("visibilitychange", () => {
     running = !document.hidden;
-    if (running) {
-      last = performance.now();
-      requestAnimationFrame(frame);
-    }
+    if (running) { last = performance.now(); requestAnimationFrame(frame); }
   });
 
   build();
   requestAnimationFrame(frame);
 
-  window.City = {
-    highlight(code) { highlight = code || null; },
+  return {
+    setResidents, setMe, focus, focusMe,
+    setMode(m) { if (m !== mode) { mode = m; layout(); } canvas.classList.toggle("explore", m === "explore"); },
+    onSelect(cb) { onSelect = cb; },
+    count() { return residents.length; },
   };
 })();

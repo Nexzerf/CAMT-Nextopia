@@ -1,0 +1,14 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/rpc/:fn(nextopia_[a-z_]+)",
+      "destination": "https://wgpumjrmowscxckqxshi.supabase.co/rest/v1/rpc/:fn"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+    }
+  ]
+}

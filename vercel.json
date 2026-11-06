@@ -2,6 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/api/rpc/:fn(nextopia_[a-z_]+)/",
+      "destination": "https://wgpumjrmowscxckqxshi.supabase.co/rest/v1/rpc/:fn"
+    },
+    {
       "source": "/api/rpc/:fn(nextopia_[a-z_]+)",
       "destination": "https://wgpumjrmowscxckqxshi.supabase.co/rest/v1/rpc/:fn"
     }

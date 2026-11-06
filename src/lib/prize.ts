@@ -37,7 +37,8 @@ export async function rpc<T = unknown>(fn: string, body: unknown, timeoutMs = 12
   let lastErr: unknown = null;
   for (const b of order) {
     try {
-      const { res, data, json } = await call(b + fn, body, timeoutMs);
+      // proxy ต้องมี / ท้าย (next.config ตั้ง trailingSlash ไว้ ถ้าไม่มีจะโดน redirect)
+      const { res, data, json } = await call(b + fn + (b === PROXY ? "/" : ""), body, timeoutMs);
       if (!json || (res.status === 404 && b === PROXY)) {
         lastErr = new Error("proxy unavailable");
         continue;

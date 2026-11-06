@@ -2404,3 +2404,162 @@ button.oc-box {
   background: #ffd23f;
   box-shadow: 0 0 0 3px var(--ink), inset 0 -4px 0 #d99a12;
 }
+
+/* ---------- หลักสูตร (อ้างอิงเล่มหลักสูตรของแต่ละสาขา) ---------- */
+.degree {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+.degree b {
+  font-size: 17px;
+  line-height: 1.4;
+}
+.degree span {
+  font-size: 14px;
+}
+.credit-bar {
+  display: flex;
+  height: 18px;
+  box-shadow: 0 0 0 2px var(--ink);
+  background: #fff;
+  overflow: hidden;
+}
+.credit-bar .seg {
+  display: block;
+  min-width: 6px;
+  border-right: 2px solid var(--ink);
+}
+.credit-bar .seg:last-child {
+  border-right: none;
+}
+.seg.s0 { background: #b9c7e6; }
+.seg.s1 { background: #46e6ff; }
+.seg.s2 { background: var(--persona); }
+.seg.s3 { background: #ff4fd8; }
+.seg.s4 { background: #ffd23f; }
+.credit-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 10px;
+  font-size: 13px;
+}
+.credit-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.credit-legend i {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  box-shadow: 0 0 0 2px var(--ink);
+}
+.credit-legend b {
+  font-family: var(--pixel);
+  font-size: 12px;
+}
+
+.journey {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+.journey > li {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 10px;
+}
+.journey .yr {
+  align-self: start;
+  display: grid;
+  justify-items: center;
+  padding: 6px 0 4px;
+  background: var(--ink);
+  color: var(--gold);
+  box-shadow: 0 0 0 2px var(--ink), 0 0 10px #46e6ff55;
+}
+.journey .yr span {
+  font-size: 11px;
+  color: #fff;
+}
+.journey .yr b {
+  font-family: var(--pixel);
+  font-size: 24px;
+  line-height: 1;
+}
+.journey .yr-body {
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--ink);
+  padding: 8px 10px;
+}
+.journey .yr-theme {
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--ink);
+}
+.journey ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.journey ul li {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 2px 0;
+}
+.journey code {
+  flex: none;
+  font-family: var(--pixel);
+  font-size: 10px;
+  padding: 1px 4px;
+  background: var(--parch2);
+  box-shadow: 0 0 0 1px var(--ink);
+}
+.journey .muted {
+  margin: 4px 0 0;
+}
+
+.elective-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.elective-chips .tag {
+  border-left: 5px solid var(--persona);
+}
+
+.careers {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+@media (max-width: 380px) {
+  .careers {
+    grid-template-columns: 1fr;
+  }
+}
+.careers li {
+  display: grid;
+  gap: 1px;
+  padding: 8px 10px;
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--ink), inset 4px 0 0 var(--persona);
+  line-height: 1.35;
+}
+.careers li b {
+  font-size: 14px;
+}
+.careers li span {
+  font-size: 12px;
+  color: var(--ink-soft);
+}

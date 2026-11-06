@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Character from "@/components/Character";
 import PixelIcon from "@/components/PixelIcon";
 import { CAMT_FACTS, CAMT_PERKS } from "@/lib/majors";
+import { CURRICULUM } from "@/lib/curriculum";
 import { PRIZE_ICON } from "@/lib/prize";
 import type { Ranked } from "@/lib/scoring";
 import type { PreparedCard } from "@/lib/share";
@@ -80,6 +81,7 @@ function PrizeCard({ prize, onRetry }: { prize?: PrizeState; onRetry: () => void
 export default function ResultView({ nickname, look, ranking, prize, onRetryPrize, onReplay }: Props) {
   const top = ranking[0];
   const p = top.major;
+  const cur = CURRICULUM[p.code];
 
   // เตรียมการ์ดสตอรี่ล่วงหน้า
   const [card, setCard] = useState<PreparedCard | null>(null);
@@ -151,27 +153,89 @@ export default function ResultView({ nickname, look, ranking, prize, onRetryPriz
       </section>
 
       <section className="card tabbed">
-        <h2 className="tab"><PixelIcon name="books" /> วิชาเด่นที่จะได้เรียน</h2>
-        <div className="courses">
-          {p.subjects.map((c, i) => (
-            <div className="course" key={c}>
-              <code>{String(i + 1).padStart(2, "0")}</code>
-              <span>{c}</span>
+        <h2 className="tab"><PixelIcon name="gradcap" /> หลักสูตรที่จะได้เรียน</h2>
+        <div className="degree">
+          <b>{cur.degree}</b>
+          <span>{cur.degreeEn}</span>
+          <span className="muted">
+            {cur.version}
+            {cur.credits ? ` · ไม่น้อยกว่า ${cur.credits} หน่วยกิต` : ""}
+            {cur.teaching ? ` · ${cur.teaching}` : ""}
+          </span>
+        </div>
+        {cur.structure.length > 0 && (
+          <>
+            <div className="credit-bar" role="img" aria-label="สัดส่วนหน่วยกิต">
+              {cur.structure.map((x, i) => (
+                <span key={x.label} className={`seg s${i}`} style={{ flexGrow: x.credits }} />
+              ))}
             </div>
+            <div className="credit-legend">
+              {cur.structure.map((x, i) => (
+                <span key={x.label}>
+                  <i className={`seg s${i}`} /> {x.label} <b>{x.credits}</b>
+                </span>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
+
+      <section className="card tabbed">
+        <h2 className="tab"><PixelIcon name="flag" /> เส้นทาง 4 ปีในสาขานี้</h2>
+        <ol className="journey">
+          {cur.journey.map((y) => (
+            <li key={y.year}>
+              <div className="yr">
+                <span>ปี</span>
+                <b>{y.year}</b>
+              </div>
+              <div className="yr-body">
+                <div className="yr-theme">{y.theme}</div>
+                <ul>
+                  {y.courses.map((c) => (
+                    <li key={c.code}>
+                      <code>{c.code}</code>
+                      <span>{c.name}</span>
+                    </li>
+                  ))}
+                </ul>
+                {y.note && <p className="muted">{y.note}</p>}
+              </div>
+            </li>
+          ))}
+        </ol>
+        <div className="wil">
+          <b>
+            <PixelIcon name="suitcase" /> ปีสุดท้าย: {cur.finalYear.title}
+          </b>
+          {cur.finalYear.text}
+        </div>
+      </section>
+
+      <section className="card tabbed">
+        <h2 className="tab"><PixelIcon name="star" /> วิชาเลือกที่น่าสนใจ</h2>
+        <p className="muted">ตัวอย่างวิชาเอกเลือกในหลักสูตร เลือกเรียนตามสายที่ชอบได้</p>
+        <div className="elective-chips">
+          {cur.electives.map((e) => (
+            <span key={e} className="tag">
+              {e}
+            </span>
           ))}
         </div>
       </section>
 
       <section className="card tabbed">
-        <h2 className="tab"><PixelIcon name="ladder" /> เส้นทางอาชีพ</h2>
-        <ol className="ladder">
-          {p.careers.map((title, i) => (
-            <li key={title} className={i === 0 ? "you" : ""}>
-              <span className="lv">#{i + 1}</span>
-              <span>{title}</span>
+        <h2 className="tab"><PixelIcon name="suitcase" /> เรียนจบแล้วทำอะไรได้</h2>
+        <ul className="careers">
+          {cur.careers.map((c) => (
+            <li key={c.th}>
+              <b>{c.th}</b>
+              {c.en && c.en !== c.th && <span>{c.en}</span>}
             </li>
           ))}
-        </ol>
+        </ul>
+        {cur.careersFromCurriculum && <p className="muted">อ้างอิงจากหัวข้ออาชีพที่สามารถประกอบได้ในเล่มหลักสูตร</p>}
       </section>
 
       <section className="card tabbed">

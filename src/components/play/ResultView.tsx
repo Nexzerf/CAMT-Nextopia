@@ -5,7 +5,7 @@ import Character from "@/components/Character";
 import PixelIcon from "@/components/PixelIcon";
 import { CAMT_FACTS, CAMT_PERKS } from "@/lib/majors";
 import { CURRICULUM } from "@/lib/curriculum";
-import { PRIZE_ICON } from "@/lib/prize";
+import { prizeIcon } from "@/lib/prize";
 import type { Ranked } from "@/lib/scoring";
 import type { PreparedCard } from "@/lib/share";
 import type { Look } from "@/lib/sprite";
@@ -50,7 +50,7 @@ function PrizeCard({ prize, onRetry }: { prize?: PrizeState; onRetry: () => void
         <h2 className="tab"><PixelIcon name="trophy" /> ได้ของรางวัล!</h2>
         <div className="prize-show">
           <span className="prize-icon big">
-            <PixelIcon name={PRIZE_ICON[r.prize_id]} size={112} />
+            <PixelIcon name={prizeIcon(r.emoji ?? r.prize_id)} size={112} />
           </span>
           <div className="prize-name">{r.prize_name}</div>
           {r.already && <div className="muted">เครื่องนี้ลุ้นไปแล้ว นี่คือรางวัลเดิมของคุณ</div>}

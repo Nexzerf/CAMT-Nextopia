@@ -1,4 +1,5 @@
 import { SUPABASE_KEY, SUPABASE_URL } from "./config";
+import { ICON_NAMES, type IconName } from "./icons";
 
 /**
  * เรียกฟังก์ชันบน Supabase ผ่าน /api/rpc/* (โดเมนเดียวกับเว็บ, vercel.json ส่งต่อให้ Supabase)
@@ -58,14 +59,40 @@ export async function rpc<T = unknown>(fn: string, body: unknown, timeoutMs = 12
 }
 
 export interface PrizeResult {
-  prize_id: "clicker1" | "clicker3" | "bag" | "mug" | null;
+  prize_id: string | null;
   prize_name: string | null;
+  /** ชื่อไอคอนพิกเซลของรางวัล (คอลัมน์ emoji ในฐานข้อมูลเก็บชื่อไอคอน) */
+  emoji?: string | null;
   code: string | null;
   time: string;
   already?: boolean;
 }
 
-export const PRIZE_ICON = { clicker1: "clicker1", clicker3: "clicker3", bag: "bag", mug: "mug" } as const;
+/** ไอคอนที่สตาฟเลือกให้ของรางวัลได้ */
+export const PRIZE_ICON_CHOICES: { name: IconName; label: string }[] = [
+  { name: "trophy", label: "ถ้วยรางวัล" },
+  { name: "medal", label: "เหรียญ" },
+  { name: "star", label: "ดาว" },
+  { name: "party", label: "ปาร์ตี้" },
+  { name: "clicker1", label: "คลิกเกอร์ 1 ปุ่ม" },
+  { name: "clicker3", label: "คลิกเกอร์ 3 ปุ่ม" },
+  { name: "bag", label: "กระเป๋า" },
+  { name: "mug", label: "แก้วน้ำ" },
+  { name: "book", label: "หนังสือ / สมุด" },
+  { name: "camera", label: "กล้อง" },
+  { name: "phone", label: "โทรศัพท์" },
+  { name: "laptop", label: "แล็ปท็อป" },
+  { name: "coffee", label: "กาแฟ / เครื่องดื่ม" },
+  { name: "gamepad", label: "จอยเกม" },
+  { name: "crown", label: "มงกุฎ" },
+  { name: "rocket", label: "จรวด" },
+  { name: "tools", label: "เครื่องมือ" },
+];
+
+/** แปลงชื่อไอคอนจากฐานข้อมูลเป็นไอคอนที่มีจริง (ไม่รู้จัก = ถ้วยรางวัล) */
+export function prizeIcon(name: string | null | undefined): IconName {
+  return name && (ICON_NAMES as string[]).includes(name) ? (name as IconName) : "trophy";
+}
 
 const DEVICE_KEY = "nextopia.device.v1";
 const KIOSK_KEY = "nextopia.kiosk.v1";

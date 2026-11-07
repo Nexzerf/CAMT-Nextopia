@@ -123,15 +123,18 @@ begin
     'prize_name', v_won_name, 'emoji', v_won_emoji, 'time', v_row.created_at);
 end $$;
 
--- ---------- Staff ----------
-create or replace function public.nextopia_admin(p_pin text, p_action text, p_payload json default '{}'::json)
+-- ---------- Staff: จัดการของรางวัล + แผนวันนี้ ----------
+-- แยกเป็นฟังก์ชันใหม่ที่ไม่มีคำสั่งลบข้อมูล ("เอาออก" = archived, ประวัติยังอยู่)
+-- ส่วน "เริ่มรอบโรงเรียนใหม่" (reset_all) ยังใช้ public.nextopia_admin เดิม
+alter table nextopia.prizes add column if not exists archived boolean not null default false;
+
+create or replace function public.nextopia_prize_admin(p_pin text, p_action text, p_payload json default '{}'::json)
 returns json language plpgsql security definer set search_path = '' as $$
 declare
   v_item json;
   v_name text;
   v_icon text;
   v_stock int;
-  v_note text := null;
 begin
   if not nextopia.check_pin(p_pin) then
     return json_build_object('error', 'invalid pin');
@@ -145,7 +148,7 @@ begin
         enabled = coalesce((v_item ->> 'enabled')::boolean, enabled),
         name    = coalesce(nullif(left(trim(v_item ->> 'name'), 40), ''), name),
         emoji   = case when (v_item ->> 'icon') ~ '^[a-z0-9_]{1,20}$' then v_item ->> 'icon' else emoji end
-      where id = v_item ->> 'id';
+      where id = v_item ->> 'id' and not archived;
     end loop;
   elsif p_action = 'add_prize' then
     v_name := left(trim(coalesce(p_payload ->> 'name', '')), 40);
@@ -157,13 +160,8 @@ begin
     values ('p_' || substr(md5(gen_random_uuid()::text), 1, 8), v_name, v_icon, v_stock,
             least(100, greatest(0, coalesce((p_payload ->> 'chance')::numeric, 1))), true,
             coalesce((select max(sort) from nextopia.prizes), 0) + 1);
-  elsif p_action = 'delete_prize' then
-    if exists (select 1 from nextopia.spins where prize_id = p_payload ->> 'id') then
-      update nextopia.prizes set enabled = false where id = p_payload ->> 'id';
-      v_note := 'disabled';
-    else
-      delete from nextopia.prizes where id = p_payload ->> 'id';
-    end if;
+  elsif p_action = 'archive_prize' then
+    update nextopia.prizes set enabled = false, archived = true where id = p_payload ->> 'id';
   elsif p_action = 'set_plan' then
     insert into nextopia.settings (key, value)
     values ('expected_players', greatest(0, least(100000, coalesce((p_payload ->> 'expected')::int, 0)))::text)
@@ -171,25 +169,11 @@ begin
     insert into nextopia.settings (key, value)
     values ('auto_odds', case when coalesce((p_payload ->> 'auto')::boolean, false) then 'true' else 'false' end)
     on conflict (key) do update set value = excluded.value;
-  elsif p_action = 'reset_all' then
-    delete from nextopia.spins where true;
-    update nextopia.prizes set given = 0 where true;
-    delete from nextopia.residents where true;
-  elsif p_action = 'claim' then
-    update nextopia.spins set claimed_at = coalesce(claimed_at, now())
-    where code = upper(trim(p_payload ->> 'code'));
-  elsif p_action = 'hide_resident' then
-    update nextopia.residents set hidden = true where id = (p_payload ->> 'id')::uuid;
-  elsif p_action = 'set_pin' then
-    if length(coalesce(p_payload ->> 'new_pin', '')) < 4 then raise exception 'pin too short'; end if;
-    update nextopia.settings set value = extensions.crypt(p_payload ->> 'new_pin', extensions.gen_salt('bf'))
-    where key = 'pin';
   elsif p_action <> 'status' then
-    raise exception 'unknown action';
+    return json_build_object('error', 'unknown action');
   end if;
 
   return json_build_object(
-    'note', v_note,
     'plan', (select json_build_object('auto', o.auto, 'expected', o.expected, 'played', o.played, 'remain', o.remain)
              from nextopia.current_odds() o limit 1),
     'plan_settings', json_build_object(
@@ -199,13 +183,14 @@ begin
         'id', p.id, 'name', p.name, 'icon', p.emoji, 'stock', p.stock, 'given', p.given,
         'left', greatest(p.stock - p.given, 0), 'chance', p.chance, 'enabled', p.enabled,
         'now', o.pct) order by p.sort), '[]'::json)
-      from nextopia.prizes p join nextopia.current_odds() o on o.prize_id = p.id),
+      from nextopia.prizes p join nextopia.current_odds() o on o.prize_id = p.id
+      where not p.archived),
     'total_spins', (select count(*) from nextopia.spins),
     'total_wins',  (select count(*) from nextopia.spins where prize_id is not null),
     'by_major', (select coalesce(json_object_agg(major, n), '{}'::json)
       from (select coalesce(major, '-') as major, count(*) n from nextopia.spins group by 1) t),
     'recent', (select coalesce(json_agg(r), '[]'::json) from (
-      select s.created_at as time, s.name, s.major, s.prize_id, p.name as prize_name, p.emoji as icon, s.code, s.claimed_at, s.kiosk
+      select s.created_at as time, s.name, s.major, s.prize_id, p.name as prize_name, p.emoji as icon
       from nextopia.spins s left join nextopia.prizes p on p.id = s.prize_id
       order by s.created_at desc
       limit least(greatest(coalesce((p_payload ->> 'limit')::int, 300), 1), 20000)) r)
@@ -213,6 +198,6 @@ begin
 end $$;
 
 revoke all on function public.nextopia_spin(text, text, text, text) from public;
-revoke all on function public.nextopia_admin(text, text, json) from public;
 grant execute on function public.nextopia_spin(text, text, text, text) to anon, authenticated;
-grant execute on function public.nextopia_admin(text, text, json) to anon, authenticated;
+revoke all on function public.nextopia_prize_admin(text, text, json) from public;
+grant execute on function public.nextopia_prize_admin(text, text, json) to anon, authenticated;

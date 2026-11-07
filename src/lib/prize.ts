@@ -136,6 +136,13 @@ export async function drawPrize(nickname: string, major: string): Promise<PrizeR
   return r;
 }
 
+/** จัดการของรางวัล/แผนวันนี้ (ฟังก์ชันใหม่ ไม่มีคำสั่งลบข้อมูล) */
+export async function prizeAdmin<T = Record<string, unknown>>(pin: string, action: string, payload: Record<string, unknown> = {}): Promise<T> {
+  const r = await rpc<T & { error?: string }>("nextopia_prize_admin", { p_pin: pin, p_action: action, p_payload: payload }, 20000);
+  if (r && (r as { error?: string }).error) throw new Error((r as { error?: string }).error);
+  return r;
+}
+
 export async function staff<T = Record<string, unknown>>(pin: string, action: string, payload: Record<string, unknown> = {}): Promise<T> {
   const r = await rpc<T & { error?: string }>("nextopia_admin", { p_pin: pin, p_action: action, p_payload: payload }, 20000);
   if (r && (r as { error?: string }).error) throw new Error((r as { error?: string }).error);

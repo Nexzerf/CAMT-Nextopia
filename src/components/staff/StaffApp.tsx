@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import PixelIcon from "@/components/PixelIcon";
-import { PRIZE_ICON_CHOICES, kioskPin, prizeIcon, setKioskPin, staff } from "@/lib/prize";
+import { PRIZE_ICON_CHOICES, kioskPin, prizeAdmin, prizeIcon, setKioskPin, staff } from "@/lib/prize";
 
 interface PrizeRow {
   id: string;
@@ -24,7 +24,6 @@ interface SpinRow {
   prize_name: string | null;
 }
 interface Status {
-  note: string | null;
   plan: { auto: boolean; expected: number; played: number; remain: number };
   plan_settings: { auto: boolean; expected: number };
   prizes: PrizeRow[];
@@ -80,7 +79,9 @@ export default function StaffApp() {
       setMsg("");
       setOk("");
       try {
-        const d = await staff<Status>(pin, action, payload);
+        // "เริ่มรอบใหม่" ใช้ฟังก์ชันเดิม (ล้างข้อมูล) แล้วโหลดสถานะจากฟังก์ชันใหม่
+        if (action === "reset_all") await staff(pin, "reset_all");
+        const d = await prizeAdmin<Status>(pin, action === "reset_all" ? "status" : action, payload);
         apply(d, opts.keepEdits);
         if (opts.done) setOk(opts.done);
         return d;
@@ -107,7 +108,7 @@ export default function StaffApp() {
   useEffect(() => {
     if (!authed) return;
     const t = setInterval(() => {
-      staff<Status>(pin, "status")
+      prizeAdmin<Status>(pin, "status")
         .then((d) => apply(d, dirty))
         .catch(() => undefined);
     }, 15000);
@@ -144,11 +145,9 @@ export default function StaffApp() {
   };
 
   const removePrize = async (p: PrizeRow) => {
-    if (!confirm(`ลบ "${p.name}" ออกจากรายการของรางวัล?`)) return;
+    if (!confirm(`เอา "${p.name}" ออกจากรายการของรางวัล?\n(จะไม่แจกอีก แต่ประวัติคนที่ได้ไปแล้วยังอยู่)`)) return;
     try {
-      const d = await run("delete_prize", { id: p.id });
-      if (d.note === "disabled") setOk(`"${p.name}" มีคนได้ไปแล้ว จึงปิดไว้แทนการลบ (ประวัติยังอยู่ครบ)`);
-      else setOk(`ลบ "${p.name}" แล้ว`);
+      await run("archive_prize", { id: p.id }, { done: `เอา "${p.name}" ออกแล้ว` });
     } catch {
       /* msg already set */
     }
@@ -156,7 +155,7 @@ export default function StaffApp() {
 
   const exportCsv = async () => {
     try {
-      const d = await staff<Status>(pin, "status", { limit: 20000 });
+      const d = await prizeAdmin<Status>(pin, "status", { limit: 20000 });
       const head = ["time", "name", "major", "prize"];
       const lines = [head, ...d.recent.map((x) => [x.time, x.name ?? "", x.major ?? "", x.prize_name ?? "ขอบคุณจ้า"])];
       const csv = "﻿" + lines.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
